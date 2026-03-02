@@ -37,6 +37,7 @@ export default function SearchPage() {
           <div className="mt-4 space-y-6">
             <ForwardResolve />
             <ReverseResolve />
+            <PeerReverseLookup />
           </div>
         )}
       </div>
@@ -417,8 +418,139 @@ function ReverseResolve() {
       {searched && !loading && !error && names.length === 0 && (
         <div className="mt-4 p-4 bg-input rounded-md">
           <p className="text-secondary text-sm">
-            No names registered for{" "}
-            <span className="font-mono">{truncateAddress(displayAddr)}</span>
+            No names owned by{" "}
+            <span className="font-mono">{truncateAddress(displayAddr)}</span>.
+            {" "}If this is an EpixNet peer address, try the Peer Reverse Lookup below.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PeerReverseLookup() {
+  const restApi = useRestApi();
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [searched, setSearched] = useState(false);
+  const [result, setResult] = useState<{
+    name: string;
+    tld: string;
+    owner: string;
+    peerActive: boolean;
+    peerLabel: string;
+    addedAt: number;
+    revokedAt: number;
+  } | null>(null);
+
+  const doLookup = async () => {
+    const trimmed = input.trim();
+    setError("");
+    setSearched(true);
+    setLoading(true);
+    setResult(null);
+
+    try {
+      if (!isBech32Address(trimmed)) {
+        setError("Enter a valid epix1... bech32 peer address");
+        return;
+      }
+
+      const res = await fetch(`${restApi}/xid/v1/reverse_peer/${trimmed}`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+
+      if (data.name_record?.name) {
+        setResult({
+          name: data.name_record.name,
+          tld: data.name_record.tld,
+          owner: data.name_record.owner,
+          peerActive: data.peer?.active ?? true,
+          peerLabel: data.peer?.label ?? "",
+          addedAt: parseInt(data.peer?.added_at ?? "0"),
+          revokedAt: parseInt(data.peer?.revoked_at ?? "0"),
+        });
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to fetch");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-card rounded-lg border border-default p-6">
+      <h2 className="text-base font-semibold mb-1">Peer Reverse Lookup</h2>
+      <p className="text-secondary text-sm mb-4">
+        Look up the xID name linked to an EpixNet peer address (epix1...).
+      </p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="epix1..."
+          className="flex-1 bg-input border border-default rounded-md px-4 py-2.5 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-colors"
+          onKeyDown={(e) => e.key === "Enter" && doLookup()}
+        />
+        <button
+          onClick={doLookup}
+          disabled={!isBech32Address(input.trim())}
+          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md font-medium text-sm transition-colors disabled:opacity-50"
+        >
+          Lookup
+        </button>
+      </div>
+
+      {loading && (
+        <p className="mt-4 text-tertiary text-sm">Resolving...</p>
+      )}
+
+      {error && (
+        <p className="mt-4 text-error text-sm">{error}</p>
+      )}
+
+      {searched && !loading && !error && result && (
+        <div className="mt-4 p-4 bg-input rounded-md space-y-3">
+          <div className="flex justify-between">
+            <span className="text-secondary text-sm">xID Name</span>
+            <Link
+              to={`/name/${result.tld}/${result.name}`}
+              className="font-semibold text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+            >
+              {result.name}.{result.tld}
+            </Link>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-secondary text-sm">Owner</span>
+            <span className="font-mono text-sm">{truncateAddress(result.owner)}</span>
+          </div>
+          {result.peerLabel && (
+            <div className="flex justify-between">
+              <span className="text-secondary text-sm">Peer Label</span>
+              <span className="text-sm">{result.peerLabel}</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-secondary text-sm">Status</span>
+            <span className={`text-sm font-medium ${result.peerActive ? "text-green-400" : "text-red-400"}`}>
+              {result.peerActive ? "Active" : `Revoked (block ${result.revokedAt})`}
+            </span>
+          </div>
+          {result.addedAt > 0 && (
+            <div className="flex justify-between">
+              <span className="text-secondary text-sm">Added At Block</span>
+              <span className="text-sm font-mono">{result.addedAt}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {searched && !loading && !error && !result && (
+        <div className="mt-4 p-4 bg-input rounded-md">
+          <p className="text-secondary text-sm">
+            No xID name linked to this peer address.
           </p>
         </div>
       )}

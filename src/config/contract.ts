@@ -284,6 +284,17 @@ export const XID_ABI = [
       { name: "root", type: "string", indexed: false },
     ],
   },
+  {
+    type: "function",
+    name: "reverseResolveByPeer",
+    inputs: [{ name: "peerAddress", type: "string" }],
+    outputs: [
+      { name: "name", type: "string" },
+      { name: "tld", type: "string" },
+      { name: "found", type: "bool" },
+    ],
+    stateMutability: "view",
+  },
 ] as const;
 
 export const DNS_RECORD_TYPES = [
