@@ -87,7 +87,7 @@ function AppInner() {
                 />
                 <Route path="/prices" element={<PricesPage />} />
                 <Route path="/stats" element={<StatsPage />} />
-                <Route path="/add-peer" element={<AddPeerPage />} />
+                <Route path="/link-identity" element={<AddPeerPage />} />
               </Routes>
             </Layout>
           </HashRouter>

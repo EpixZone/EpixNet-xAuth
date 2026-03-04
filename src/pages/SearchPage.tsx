@@ -37,7 +37,7 @@ export default function SearchPage() {
           <div className="mt-4 space-y-6">
             <ForwardResolve />
             <ReverseResolve />
-            <PeerReverseLookup />
+            <IdentityReverseLookup />
           </div>
         )}
       </div>
@@ -420,7 +420,7 @@ function ReverseResolve() {
           <p className="text-secondary text-sm">
             No names owned by{" "}
             <span className="font-mono">{truncateAddress(displayAddr)}</span>.
-            {" "}If this is an EpixNet peer address, try the Peer Reverse Lookup below.
+            {" "}If this is an EpixNet identity address, try the Identity Reverse Lookup below.
           </p>
         </div>
       )}
@@ -428,7 +428,7 @@ function ReverseResolve() {
   );
 }
 
-function PeerReverseLookup() {
+function IdentityReverseLookup() {
   const restApi = useRestApi();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -438,8 +438,8 @@ function PeerReverseLookup() {
     name: string;
     tld: string;
     owner: string;
-    peerActive: boolean;
-    peerLabel: string;
+    identityActive: boolean;
+    identityLabel: string;
     addedAt: number;
     revokedAt: number;
   } | null>(null);
@@ -453,11 +453,11 @@ function PeerReverseLookup() {
 
     try {
       if (!isBech32Address(trimmed)) {
-        setError("Enter a valid epix1... bech32 peer address");
+        setError("Enter a valid epix1... bech32 identity address");
         return;
       }
 
-      const res = await fetch(`${restApi}/xid/v1/reverse_peer/${trimmed}`);
+      const res = await fetch(`${restApi}/xid/v1/reverse_identity/${trimmed}`);
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
 
@@ -466,8 +466,8 @@ function PeerReverseLookup() {
           name: data.name_record.name,
           tld: data.name_record.tld,
           owner: data.name_record.owner,
-          peerActive: data.peer?.active ?? true,
-          peerLabel: data.peer?.label ?? "",
+          identityActive: data.peer?.active ?? true,
+          identityLabel: data.peer?.label ?? "",
           addedAt: parseInt(data.peer?.added_at ?? "0"),
           revokedAt: parseInt(data.peer?.revoked_at ?? "0"),
         });
@@ -481,9 +481,9 @@ function PeerReverseLookup() {
 
   return (
     <div className="bg-card rounded-lg border border-default p-6">
-      <h2 className="text-base font-semibold mb-1">Peer Reverse Lookup</h2>
+      <h2 className="text-base font-semibold mb-1">Identity Reverse Lookup</h2>
       <p className="text-secondary text-sm mb-4">
-        Look up the xID name linked to an EpixNet peer address (epix1...).
+        Look up the xID name linked to an EpixNet identity address (epix1...).
       </p>
       <div className="flex gap-2">
         <input
@@ -526,16 +526,16 @@ function PeerReverseLookup() {
             <span className="text-secondary text-sm">Owner</span>
             <span className="font-mono text-sm">{truncateAddress(result.owner)}</span>
           </div>
-          {result.peerLabel && (
+          {result.identityLabel && (
             <div className="flex justify-between">
-              <span className="text-secondary text-sm">Peer Label</span>
-              <span className="text-sm">{result.peerLabel}</span>
+              <span className="text-secondary text-sm">Identity Label</span>
+              <span className="text-sm">{result.identityLabel}</span>
             </div>
           )}
           <div className="flex justify-between">
             <span className="text-secondary text-sm">Status</span>
-            <span className={`text-sm font-medium ${result.peerActive ? "text-green-400" : "text-red-400"}`}>
-              {result.peerActive ? "Active" : `Revoked (block ${result.revokedAt})`}
+            <span className={`text-sm font-medium ${result.identityActive ? "text-green-400" : "text-red-400"}`}>
+              {result.identityActive ? "Active" : `Revoked (block ${result.revokedAt})`}
             </span>
           </div>
           {result.addedAt > 0 && (
@@ -550,7 +550,7 @@ function PeerReverseLookup() {
       {searched && !loading && !error && !result && (
         <div className="mt-4 p-4 bg-input rounded-md">
           <p className="text-secondary text-sm">
-            No xID name linked to this peer address.
+            No xID name linked to this identity address.
           </p>
         </div>
       )}

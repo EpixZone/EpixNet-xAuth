@@ -5,7 +5,7 @@ import { isAddress } from "viem";
 import {
   useResolve,
   useProfile,
-  useEpixNetPeers,
+  useLinkedIdentities,
   useContentRoot,
   usePrimaryName,
   useXidWrite,
@@ -28,7 +28,7 @@ export default function NameDetailPage() {
   const { address } = useAccount();
   const { owner, isLoading: resolveLoading, refetch: refetchOwner } = useResolve(name, tld);
   const { avatar, bio, refetch: refetchProfile } = useProfile(name, tld);
-  const { peers, isLoading: peersLoading, refetch: refetchPeers } = useEpixNetPeers(name, tld);
+  const { peers: identities, isLoading: identitiesLoading, refetch: refetchIdentities } = useLinkedIdentities(name, tld);
   const { root, updatedAt } = useContentRoot(name, tld);
   const { primaryName: pName, primaryTld: pTld, refetch: refetchPrimary } = usePrimaryName(address);
   const primaryWriter = useXidWrite();
@@ -108,18 +108,18 @@ export default function NameDetailPage() {
         onUpdate={refetchProfile}
       />
 
-      {/* EpixNet Peers */}
-      <EpixNetPeersSection
+      {/* Linked Identities */}
+      <LinkedIdentitiesSection
         name={name}
         tld={tld}
         isOwner={!!isOwner}
-        peers={peers}
-        peersLoading={peersLoading}
+        identities={identities}
+        identitiesLoading={identitiesLoading}
         contentRoot={root}
         contentRootUpdatedAt={updatedAt}
         visitorAuthAddress={authAddress}
         addPeerParam={addPeerParam}
-        onPeersChanged={() => { refetchPeers(); }}
+        onIdentitiesChanged={() => { refetchIdentities(); }}
       />
 
       {/* DNS Records */}
@@ -252,72 +252,72 @@ function ProfileSection({
   );
 }
 
-/* ── EpixNet Peers Section ────────────────────────────────────────── */
+/* ── Linked Identities Section ────────────────────────────────────── */
 
-function EpixNetPeersSection({
-  name, tld, isOwner, peers, peersLoading, contentRoot, contentRootUpdatedAt, visitorAuthAddress, addPeerParam, onPeersChanged,
+function LinkedIdentitiesSection({
+  name, tld, isOwner, identities, identitiesLoading, contentRoot, contentRootUpdatedAt, visitorAuthAddress, addPeerParam, onIdentitiesChanged,
 }: {
   name: string; tld: string; isOwner: boolean;
-  peers: { address: string; label: string; addedAt: bigint; active: boolean; revokedAt: bigint }[];
-  peersLoading: boolean;
+  identities: { address: string; label: string; addedAt: bigint; active: boolean; revokedAt: bigint }[];
+  identitiesLoading: boolean;
   contentRoot: string; contentRootUpdatedAt: bigint;
   visitorAuthAddress: string | null;
   addPeerParam: string | null;
-  onPeersChanged: () => void;
+  onIdentitiesChanged: () => void;
 }) {
   const [adding, setAdding] = useState(false);
-  const [peerAddress, setPeerAddress] = useState("");
-  const [peerLabel, setPeerLabel] = useState("");
+  const [identityAddress, setIdentityAddress] = useState("");
+  const [identityLabel, setIdentityLabel] = useState("");
   const [copied, setCopied] = useState(false);
   const addWriter = useXidWrite();
   const revokeWriter = useXidWrite();
 
-  const visitorIsAlreadyPeer = visitorAuthAddress
-    ? peers.some((p) => p.address === visitorAuthAddress && p.active)
+  const visitorIsAlreadyLinked = visitorAuthAddress
+    ? identities.some((p) => p.address === visitorAuthAddress && p.active)
     : false;
 
-  // Auto-open add peer form when ?addPeer= param is present
+  // Auto-open add identity form when ?addPeer= param is present
   useEffect(() => {
     if (addPeerParam && isOwner) {
-      setPeerAddress(addPeerParam);
+      setIdentityAddress(addPeerParam);
       setAdding(true);
     }
   }, [addPeerParam, isOwner]);
 
   useEffect(() => {
     if (addWriter.isSuccess) {
-      // Notify parent window (iframe overlay) that peer was added
+      // Notify parent window (iframe overlay) that identity was linked
       if (addPeerParam) {
-        window.parent.postMessage({ type: "xid-peer-added", address: addPeerParam }, "*");
+        window.parent.postMessage({ type: "xid-identity-linked", address: addPeerParam }, "*");
       }
       setAdding(false);
-      setPeerAddress("");
-      setPeerLabel("");
-      onPeersChanged();
+      setIdentityAddress("");
+      setIdentityLabel("");
+      onIdentitiesChanged();
     }
   }, [addWriter.isSuccess]);
 
   useEffect(() => {
     if (revokeWriter.isSuccess) {
-      onPeersChanged();
+      onIdentitiesChanged();
     }
   }, [revokeWriter.isSuccess]);
 
-  const handleAddPeer = () => {
-    if (!peerAddress) return;
+  const handleLinkIdentity = () => {
+    if (!identityAddress) return;
     addWriter.writeContract({
       address: XID_ADDRESS,
       abi: XID_ABI,
-      functionName: "setEpixNetPeer",
-      args: [name, tld, peerAddress, peerLabel],
+      functionName: "linkIdentity",
+      args: [name, tld, identityAddress, identityLabel],
     });
   };
 
-  const handleRevokePeer = (addr: string) => {
+  const handleUnlinkIdentity = (addr: string) => {
     revokeWriter.writeContract({
       address: XID_ADDRESS,
       abi: XID_ABI,
-      functionName: "revokeEpixNetPeer",
+      functionName: "unlinkIdentity",
       args: [name, tld, addr],
     });
   };
@@ -325,13 +325,13 @@ function EpixNetPeersSection({
   return (
     <div className="bg-card rounded-lg border border-default p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-semibold">EpixNet Peers</h2>
+        <h2 className="text-base font-semibold">Linked Identities</h2>
         {isOwner && (
           <button
             onClick={() => setAdding(!adding)}
             className="text-sm text-accent hover:opacity-80 transition-colors"
           >
-            {adding ? "Cancel" : "+ Add Peer"}
+            {adding ? "Cancel" : "+ Link Identity"}
           </button>
         )}
       </div>
@@ -355,20 +355,20 @@ function EpixNetPeersSection({
               >
                 {copied ? "Copied!" : "Copy"}
               </button>
-              {isOwner && !visitorIsAlreadyPeer && (
+              {isOwner && !visitorIsAlreadyLinked && (
                 <button
                   onClick={() => {
-                    setPeerAddress(visitorAuthAddress);
+                    setIdentityAddress(visitorAuthAddress);
                     setAdding(true);
                   }}
                   className="px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors"
                 >
-                  Add as Peer
+                  Link as Identity
                 </button>
               )}
-              {visitorIsAlreadyPeer && (
+              {visitorIsAlreadyLinked && (
                 <span className="text-xs bg-badge-green text-badge-green px-2 py-0.5 rounded-full font-medium">
-                  Authorized Peer
+                  Authorized Identity
                 </span>
               )}
             </div>
@@ -376,16 +376,16 @@ function EpixNetPeersSection({
         </div>
       )}
 
-      {/* Add peer form */}
+      {/* Add identity form */}
       {adding && isOwner && (
         <div className="mb-4 p-4 bg-input rounded-md space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-secondary mb-1">Peer Address</label>
+              <label className="block text-xs font-medium text-secondary mb-1">Identity Address</label>
               <input
                 type="text"
-                value={peerAddress}
-                onChange={(e) => setPeerAddress(e.target.value)}
+                value={identityAddress}
+                onChange={(e) => setIdentityAddress(e.target.value)}
                 placeholder="0x... or epix1..."
                 className="w-full bg-card border border-default rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-colors"
               />
@@ -394,19 +394,19 @@ function EpixNetPeersSection({
               <label className="block text-xs font-medium text-secondary mb-1">Label (optional)</label>
               <input
                 type="text"
-                value={peerLabel}
-                onChange={(e) => setPeerLabel(e.target.value)}
+                value={identityLabel}
+                onChange={(e) => setIdentityLabel(e.target.value)}
                 placeholder="laptop, server, etc."
                 className="w-full bg-card border border-default rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-colors"
               />
             </div>
           </div>
           <button
-            onClick={handleAddPeer}
-            disabled={addWriter.isPending || addWriter.isConfirming || !peerAddress}
+            onClick={handleLinkIdentity}
+            disabled={addWriter.isPending || addWriter.isConfirming || !identityAddress}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
           >
-            {addWriter.isPending ? "Confirming..." : addWriter.isConfirming ? "Waiting for tx..." : "Add Peer"}
+            {addWriter.isPending ? "Confirming..." : addWriter.isConfirming ? "Waiting for tx..." : "Link Identity"}
           </button>
           {addWriter.hash && (
             <p className="text-sm text-secondary">
@@ -427,24 +427,24 @@ function EpixNetPeersSection({
         </div>
       )}
 
-      {/* Revoked peer warning */}
-      {isOwner && peers.some((p) => !p.active) && (
+      {/* Revoked identity warning */}
+      {isOwner && identities.some((p) => !p.active) && (
         <div className="mb-4 p-3 bg-badge-amber border border-default rounded-md">
           <p className="text-badge-amber text-sm">
-            <strong>Warning:</strong> If a peer key was compromised, you must manually update
-            the content root on each site where that peer had access to remove any unauthorized content.
+            <strong>Warning:</strong> If an identity key was compromised, you must manually update
+            the content root on each site where that identity had access to remove any unauthorized content.
           </p>
         </div>
       )}
 
-      {/* Peer list */}
-      {peersLoading ? (
-        <p className="text-tertiary text-sm">Loading peers...</p>
-      ) : peers.length === 0 ? (
-        <p className="text-tertiary text-sm">No EpixNet peers configured.</p>
+      {/* Identity list */}
+      {identitiesLoading ? (
+        <p className="text-tertiary text-sm">Loading identities...</p>
+      ) : identities.length === 0 ? (
+        <p className="text-tertiary text-sm">No linked identities.</p>
       ) : (
         <div className="space-y-2">
-          {peers.map((peer) => (
+          {identities.map((peer) => (
             <div
               key={peer.address}
               className={`p-3 bg-input rounded-md ${peer.active ? "" : "opacity-50"}`}
@@ -464,7 +464,7 @@ function EpixNetPeersSection({
                 </div>
                 {isOwner && peer.active && (
                   <button
-                    onClick={() => handleRevokePeer(peer.address)}
+                    onClick={() => handleUnlinkIdentity(peer.address)}
                     disabled={revokeWriter.isPending || revokeWriter.isConfirming}
                     className="text-badge-amber hover:opacity-80 text-sm disabled:opacity-50 transition-colors"
                   >
@@ -509,7 +509,7 @@ function EpixNetPeersSection({
       <div className="mt-4 pt-4 border-t border-default">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-medium text-secondary uppercase tracking-wider">Content Root</h3>
-          <span className="text-xs text-tertiary">Auto-computed from active peers</span>
+          <span className="text-xs text-tertiary">Auto-computed from active identities</span>
         </div>
         {contentRoot ? (
           <div className="space-y-1">
@@ -519,7 +519,7 @@ function EpixNetPeersSection({
             </p>
           </div>
         ) : (
-          <p className="text-tertiary text-sm">No content root (no active peers).</p>
+          <p className="text-tertiary text-sm">No content root (no active identities).</p>
         )}
       </div>
     </div>

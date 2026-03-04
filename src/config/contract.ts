@@ -61,11 +61,11 @@ export const XID_ABI = [
   },
   {
     type: "function",
-    name: "setEpixNetPeer",
+    name: "linkIdentity",
     inputs: [
       { name: "name", type: "string" },
       { name: "tld", type: "string" },
-      { name: "peerAddress", type: "string" },
+      { name: "identityAddress", type: "string" },
       { name: "label", type: "string" },
     ],
     outputs: [{ name: "success", type: "bool" }],
@@ -73,11 +73,11 @@ export const XID_ABI = [
   },
   {
     type: "function",
-    name: "revokeEpixNetPeer",
+    name: "unlinkIdentity",
     inputs: [
       { name: "name", type: "string" },
       { name: "tld", type: "string" },
-      { name: "peerAddress", type: "string" },
+      { name: "identityAddress", type: "string" },
     ],
     outputs: [{ name: "success", type: "bool" }],
     stateMutability: "nonpayable",
@@ -162,7 +162,7 @@ export const XID_ABI = [
   },
   {
     type: "function",
-    name: "getEpixNetPeers",
+    name: "getLinkedIdentities",
     inputs: [
       { name: "name", type: "string" },
       { name: "tld", type: "string" },
@@ -249,21 +249,21 @@ export const XID_ABI = [
   },
   {
     type: "event",
-    name: "EpixNetPeerSet",
+    name: "IdentityLinked",
     inputs: [
       { name: "name", type: "string", indexed: false },
       { name: "tld", type: "string", indexed: false },
-      { name: "peerAddress", type: "string", indexed: false },
+      { name: "identityAddress", type: "string", indexed: false },
       { name: "label", type: "string", indexed: false },
     ],
   },
   {
     type: "event",
-    name: "EpixNetPeerRevoked",
+    name: "IdentityUnlinked",
     inputs: [
       { name: "name", type: "string", indexed: false },
       { name: "tld", type: "string", indexed: false },
-      { name: "peerAddress", type: "string", indexed: false },
+      { name: "identityAddress", type: "string", indexed: false },
     ],
   },
   {
@@ -286,8 +286,8 @@ export const XID_ABI = [
   },
   {
     type: "function",
-    name: "reverseResolveByPeer",
-    inputs: [{ name: "peerAddress", type: "string" }],
+    name: "reverseResolveByIdentity",
+    inputs: [{ name: "identityAddress", type: "string" }],
     outputs: [
       { name: "name", type: "string" },
       { name: "tld", type: "string" },

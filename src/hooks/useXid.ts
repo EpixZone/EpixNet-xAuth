@@ -112,11 +112,11 @@ export function useProfile(name: string, tld: string = DEFAULT_TLD) {
   };
 }
 
-export function useEpixNetPeers(name: string, tld: string = DEFAULT_TLD) {
+export function useLinkedIdentities(name: string, tld: string = DEFAULT_TLD) {
   const { data, isLoading, refetch } = useReadContract({
     address: XID_ADDRESS,
     abi: XID_ABI,
-    functionName: "getEpixNetPeers",
+    functionName: "getLinkedIdentities",
     args: [name, tld],
     query: { enabled: !!name },
   });

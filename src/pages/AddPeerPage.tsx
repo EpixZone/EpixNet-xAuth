@@ -44,7 +44,7 @@ function tierLabel(tier: PriceTier, index: number, tiers: PriceTier[]): string {
 // Step indicator
 // ---------------------------------------------------------------------------
 
-const STEPS = ["Connect Wallet", "Select xID", "Add Peer"] as const;
+const STEPS = ["Connect Wallet", "Select xID", "Link Identity"] as const;
 
 function StepIndicator({ current }: { current: number }) {
   return (
@@ -147,7 +147,7 @@ function StepConnectWallet() {
         </h2>
         <p className="text-secondary text-sm max-w-xs">
           You need to connect an EpixChain wallet to register an xID and add
-          peer addresses.
+          identity addresses.
         </p>
       </div>
       <ConnectButton />
@@ -268,7 +268,7 @@ function StepSelectXid({
             </h2>
             <p className="text-secondary text-sm max-w-xs">
               You need to register an xID name before you can add an EpixNet
-              peer address.
+              identity address.
             </p>
           </div>
           <button
@@ -530,24 +530,24 @@ function StepSelectXid({
 }
 
 // ---------------------------------------------------------------------------
-// Step 3: Add Peer
+// Step 3: Link Identity
 // ---------------------------------------------------------------------------
 
-interface StepAddPeerProps {
+interface StepLinkIdentityProps {
   selectedName: string;
   selectedTld: string;
   peerAddress: string;
   returnTo: string;
 }
 
-function StepAddPeer({
+function StepLinkIdentity({
   selectedName,
   selectedTld,
   peerAddress,
   returnTo,
-}: StepAddPeerProps) {
+}: StepLinkIdentityProps) {
   const writer = useXidWrite();
-  const [peerStatus, setPeerStatus] = useState<
+  const [linkStatus, setLinkStatus] = useState<
     "idle" | "polling" | "confirmed"
   >("idle");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -558,12 +558,12 @@ function StepAddPeer({
     writer.writeContract({
       address: XID_ADDRESS,
       abi: XID_ABI,
-      functionName: "setEpixNetPeer",
+      functionName: "linkIdentity",
       args: [selectedName, selectedTld, peerAddress, "epixnet"],
     });
   };
 
-  const pollPeerResolution = useCallback(async () => {
+  const pollIdentityResolution = useCallback(async () => {
     if (!epixFrame.isEmbedded || !peerAddress) {
       if (returnTo) {
         setTimeout(() => {
@@ -573,7 +573,7 @@ function StepAddPeer({
       return;
     }
 
-    setPeerStatus("polling");
+    setLinkStatus("polling");
 
     try {
       await epixFrame.cmd("xidInvalidateCache", {
@@ -595,7 +595,7 @@ function StepAddPeer({
         if (result && result.name) {
           if (pollRef.current) clearInterval(pollRef.current);
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
-          setPeerStatus("confirmed");
+          setLinkStatus("confirmed");
           if (returnTo) {
             setTimeout(() => {
               window.location.href = returnTo;
@@ -609,7 +609,7 @@ function StepAddPeer({
 
     timeoutRef.current = setTimeout(() => {
       if (pollRef.current) clearInterval(pollRef.current);
-      setPeerStatus("confirmed");
+      setLinkStatus("confirmed");
       if (returnTo) {
         window.location.href = returnTo;
       }
@@ -617,14 +617,14 @@ function StepAddPeer({
   }, [peerAddress, returnTo]);
 
   useEffect(() => {
-    if (writer.isSuccess && peerStatus === "idle") {
-      pollPeerResolution();
+    if (writer.isSuccess && linkStatus === "idle") {
+      pollIdentityResolution();
     }
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [writer.isSuccess, peerStatus, pollPeerResolution]);
+  }, [writer.isSuccess, linkStatus, pollIdentityResolution]);
 
   if (writer.isSuccess) {
     return (
@@ -649,7 +649,7 @@ function StepAddPeer({
         </div>
         <div className="text-center space-y-1">
           <h2 className="text-lg font-semibold" style={{ color: "var(--color-success-text)" }}>
-            Peer Added Successfully!
+            Identity Linked!
           </h2>
           <p className="text-secondary text-sm">
             <span className="font-mono text-xs">{peerAddress}</span> has been
@@ -660,18 +660,18 @@ function StepAddPeer({
             .
           </p>
         </div>
-        {returnTo && peerStatus === "polling" && (
+        {returnTo && linkStatus === "polling" && (
           <div className="flex items-center gap-2">
             <div
               className="animate-spin rounded-full h-4 w-4 border-2 border-transparent"
               style={{ borderTopColor: "var(--color-accent)" }}
             />
             <span className="text-secondary text-sm">
-              Waiting for peer confirmation...
+              Waiting for identity confirmation...
             </span>
           </div>
         )}
-        {returnTo && peerStatus === "confirmed" && (
+        {returnTo && linkStatus === "confirmed" && (
           <p className="text-secondary text-sm">Redirecting back...</p>
         )}
       </div>
@@ -698,11 +698,11 @@ function StepAddPeer({
           style={{ background: "var(--color-border)" }}
         />
         <div className="space-y-1">
-          <span className="text-secondary text-sm">Peer address</span>
+          <span className="text-secondary text-sm">EpixNet Identity</span>
           <p className="font-mono text-xs text-primary break-all">
             {peerAddress || (
               <span className="text-tertiary italic">
-                No peer address provided
+                No identity address provided
               </span>
             )}
           </p>
@@ -735,7 +735,7 @@ function StepAddPeer({
           ? "Confirm in wallet..."
           : writer.isConfirming
           ? "Confirming..."
-          : "Add Peer Address"}
+          : "Link Identity"}
       </button>
     </div>
   );
@@ -807,10 +807,10 @@ export default function AddPeerPage() {
         className="text-2xl font-bold text-center mb-2"
         style={{ color: "var(--color-text-primary)" }}
       >
-        Add EpixNet Peer
+        Link EpixNet Identity
       </h1>
       <p className="text-secondary text-sm text-center mb-6">
-        Link your EpixNet peer address to your xID identity.
+        Link your EpixNet identity to your xID name.
       </p>
 
       <StepIndicator current={currentStep} />
@@ -840,7 +840,7 @@ export default function AddPeerPage() {
 
         {/* Step 3: Add Peer */}
         {currentStep === 2 && (
-          <StepAddPeer
+          <StepLinkIdentity
             selectedName={selectedName}
             selectedTld={selectedTld}
             peerAddress={peerAddress}
