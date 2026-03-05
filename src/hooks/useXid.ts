@@ -121,7 +121,7 @@ export function useLinkedIdentities(name: string, tld: string = DEFAULT_TLD) {
     query: { enabled: !!name },
   });
 
-  const result = data as [string[], string[], bigint[], boolean[], bigint[]] | undefined;
+  const result = data as [string[], string[], bigint[], boolean[], bigint[], bigint[]] | undefined;
   const peers = result
     ? result[0].map((addr, i) => ({
         address: addr,
@@ -129,6 +129,7 @@ export function useLinkedIdentities(name: string, tld: string = DEFAULT_TLD) {
         addedAt: result[2][i],
         active: result[3][i],
         revokedAt: result[4][i],
+        revokedAtTime: result[5][i],
       }))
     : [];
 

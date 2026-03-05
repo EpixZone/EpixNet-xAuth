@@ -750,7 +750,7 @@ export default function AddPeerPage() {
     () => new URLSearchParams(window.location.search),
     []
   );
-  const peerAddress = params.get("addPeer") || params.get("address") || "";
+  const peerAddress = params.get("linkIdentity") || params.get("address") || "";
   const returnTo = params.get("returnTo") || "";
 
   const { address, isConnected } = useAccount();

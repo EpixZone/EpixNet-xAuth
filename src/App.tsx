@@ -23,11 +23,11 @@ import AddPeerPage from "./pages/AddPeerPage";
 
 const queryClient = new QueryClient();
 
-// Check real query string for addPeer param (forwarded by EpixNet wrapper).
+// Check real query string for linkIdentity param (forwarded by EpixNet wrapper).
 // This bypasses HashRouter since the wrapper doesn't reliably forward hash
 // fragments to the inner iframe.
 const realParams = new URLSearchParams(window.location.search);
-const isAddPeerMode = realParams.has("addPeer");
+const isLinkIdentityMode = realParams.has("linkIdentity");
 
 function AppInner() {
   const { theme, rpcUrl, ready } = useEpixNet();
@@ -57,9 +57,9 @@ function AppInner() {
     );
   }
 
-  // When addPeer query param is present, render AddPeerPage directly
+  // When linkIdentity query param is present, render AddPeerPage directly
   // without the sidebar/layout chrome.
-  if (isAddPeerMode) {
+  if (isLinkIdentityMode) {
     return (
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>

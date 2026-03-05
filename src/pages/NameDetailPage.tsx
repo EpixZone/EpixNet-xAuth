@@ -24,7 +24,7 @@ interface DnsRecord {
 export default function NameDetailPage() {
   const { tld = DEFAULT_TLD, name = "" } = useParams<{ tld: string; name: string }>();
   const [searchParams] = useSearchParams();
-  const addPeerParam = searchParams.get("addPeer");
+  const linkIdentityParam = searchParams.get("linkIdentity");
   const { address } = useAccount();
   const { owner, isLoading: resolveLoading, refetch: refetchOwner } = useResolve(name, tld);
   const { avatar, bio, refetch: refetchProfile } = useProfile(name, tld);
@@ -118,7 +118,7 @@ export default function NameDetailPage() {
         contentRoot={root}
         contentRootUpdatedAt={updatedAt}
         visitorAuthAddress={authAddress}
-        addPeerParam={addPeerParam}
+        linkIdentityParam={linkIdentityParam}
         onIdentitiesChanged={() => { refetchIdentities(); }}
       />
 
@@ -255,14 +255,14 @@ function ProfileSection({
 /* ── Linked Identities Section ────────────────────────────────────── */
 
 function LinkedIdentitiesSection({
-  name, tld, isOwner, identities, identitiesLoading, contentRoot, contentRootUpdatedAt, visitorAuthAddress, addPeerParam, onIdentitiesChanged,
+  name, tld, isOwner, identities, identitiesLoading, contentRoot, contentRootUpdatedAt, visitorAuthAddress, linkIdentityParam, onIdentitiesChanged,
 }: {
   name: string; tld: string; isOwner: boolean;
   identities: { address: string; label: string; addedAt: bigint; active: boolean; revokedAt: bigint }[];
   identitiesLoading: boolean;
   contentRoot: string; contentRootUpdatedAt: bigint;
   visitorAuthAddress: string | null;
-  addPeerParam: string | null;
+  linkIdentityParam: string | null;
   onIdentitiesChanged: () => void;
 }) {
   const [adding, setAdding] = useState(false);
@@ -276,19 +276,19 @@ function LinkedIdentitiesSection({
     ? identities.some((p) => p.address === visitorAuthAddress && p.active)
     : false;
 
-  // Auto-open add identity form when ?addPeer= param is present
+  // Auto-open add identity form when ?linkIdentity= param is present
   useEffect(() => {
-    if (addPeerParam && isOwner) {
-      setIdentityAddress(addPeerParam);
+    if (linkIdentityParam && isOwner) {
+      setIdentityAddress(linkIdentityParam);
       setAdding(true);
     }
-  }, [addPeerParam, isOwner]);
+  }, [linkIdentityParam, isOwner]);
 
   useEffect(() => {
     if (addWriter.isSuccess) {
       // Notify parent window (iframe overlay) that identity was linked
-      if (addPeerParam) {
-        window.parent.postMessage({ type: "xid-identity-linked", address: addPeerParam }, "*");
+      if (linkIdentityParam) {
+        window.parent.postMessage({ type: "xid-identity-linked", address: linkIdentityParam }, "*");
       }
       setAdding(false);
       setIdentityAddress("");

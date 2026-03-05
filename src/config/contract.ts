@@ -173,6 +173,7 @@ export const XID_ABI = [
       { name: "addedAts", type: "uint64[]" },
       { name: "actives", type: "bool[]" },
       { name: "revokedAts", type: "uint64[]" },
+      { name: "revokedAtTimes", type: "int64[]" },
     ],
     stateMutability: "view",
   },
