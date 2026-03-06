@@ -7,6 +7,7 @@ import {
   useResolve,
   useRegistrationFee,
   useXidWrite,
+  extractContractError,
 } from "../hooks/useXid";
 import { formatEther } from "viem";
 import { XID_ADDRESS, XID_ABI } from "../config/contract";
@@ -519,8 +520,7 @@ function StepSelectXid({
 
           {registerWriter.error && (
             <div className="bg-error rounded-md p-2.5 text-error text-xs">
-              {(registerWriter.error as Error).message?.split("\n")[0] ||
-                "Registration failed"}
+              {extractContractError(registerWriter.error)}
             </div>
           )}
         </div>
@@ -711,8 +711,7 @@ function StepLinkIdentity({
 
       {writer.error && (
         <div className="bg-error rounded-md p-3 text-error text-sm">
-          {(writer.error as Error).message?.slice(0, 200) ||
-            "Transaction failed"}
+          {extractContractError(writer.error)}
         </div>
       )}
 

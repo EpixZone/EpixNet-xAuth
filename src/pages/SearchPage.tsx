@@ -6,6 +6,7 @@ import {
   useResolve,
   useRegistrationFee,
   useProfile,
+  extractContractError,
 } from "../hooks/useXid";
 import { DEFAULT_TLD } from "../config/chain";
 import { useRestApi } from "../contexts/EpixNetContext";
@@ -239,7 +240,7 @@ function ForwardResolve() {
 
       {error && hasResult && (
         <p className="mt-4 text-error text-sm">
-          {error.message?.split("\n")[0]}
+          {extractContractError(error)}
         </p>
       )}
     </div>

@@ -9,6 +9,7 @@ import {
   useContentRoot,
   usePrimaryName,
   useXidWrite,
+  extractContractError,
 } from "../hooks/useXid";
 import { XID_ADDRESS, XID_ABI, DNS_RECORD_TYPES } from "../config/contract";
 import { DEFAULT_TLD, epixTestnet } from "../config/chain";
@@ -226,7 +227,7 @@ function ProfileSection({
             </p>
           )}
           {error && (
-            <p className="text-error text-xs">{error.message?.split("\n")[0]}</p>
+            <p className="text-error text-xs">{extractContractError(error)}</p>
           )}
         </div>
       ) : (
@@ -422,7 +423,7 @@ function LinkedIdentitiesSection({
             </p>
           )}
           {addWriter.error && (
-            <p className="text-error text-xs">{addWriter.error.message?.split("\n")[0]}</p>
+            <p className="text-error text-xs">{extractContractError(addWriter.error)}</p>
           )}
         </div>
       )}
@@ -668,7 +669,7 @@ function DNSRecordsSection({
             </p>
           )}
           {setWriter.error && (
-            <p className="text-error text-xs">{setWriter.error.message?.split("\n")[0]}</p>
+            <p className="text-error text-xs">{extractContractError(setWriter.error)}</p>
           )}
         </div>
       )}
@@ -826,7 +827,7 @@ function TransferForm({
           </div>
         )}
         {error && (
-          <p className="text-error text-xs">{error.message?.split("\n")[0]}</p>
+          <p className="text-error text-xs">{extractContractError(error)}</p>
         )}
       </div>
     </div>
