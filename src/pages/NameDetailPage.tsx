@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
-import { isAddress } from "viem";
 import {
   useResolve,
   useProfile,
@@ -14,7 +13,7 @@ import {
 import { XID_ADDRESS, XID_ABI, DNS_RECORD_TYPES } from "../config/contract";
 import { DEFAULT_TLD, explorerTxUrl } from "../config/chain";
 import { useRestApi, useAuthAddress } from "../contexts/EpixNetContext";
-import { truncateAddress } from "../config/bech32";
+import { truncateAddress, normalizeToEvmAddress } from "../config/bech32";
 
 interface DnsRecord {
   record_type: number;
@@ -757,8 +756,9 @@ function TransferForm({
 }) {
   const [recipient, setRecipient] = useState("");
   const { writeContract, hash, isPending, isConfirming, isSuccess, error } = useXidWrite();
-  const isSelf = ownerAddress && recipient
-    ? recipient.toLowerCase() === ownerAddress.toLowerCase()
+  const normalizedRecipient = recipient ? normalizeToEvmAddress(recipient) : null;
+  const isSelf = ownerAddress && normalizedRecipient
+    ? normalizedRecipient.toLowerCase() === ownerAddress.toLowerCase()
     : false;
 
   useEffect(() => {
@@ -768,11 +768,12 @@ function TransferForm({
   }, [isSuccess]);
 
   const handleTransfer = () => {
+    if (!normalizedRecipient) return;
     writeContract({
       address: XID_ADDRESS,
       abi: XID_ABI,
       functionName: "transferName",
-      args: [name, tld, recipient as `0x${string}`],
+      args: [name, tld, normalizedRecipient],
     });
   };
 
@@ -791,11 +792,11 @@ function TransferForm({
             type="text"
             value={recipient}
             onChange={(e) => setRecipient(e.target.value)}
-            placeholder="0x..."
+            placeholder="0x... or epix1..."
             className="w-full bg-input border border-default rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-colors"
           />
-          {recipient && !isAddress(recipient) && (
-            <p className="text-error text-xs mt-1">Invalid EVM address</p>
+          {recipient && !normalizedRecipient && (
+            <p className="text-error text-xs mt-1">Invalid address</p>
           )}
           {isSelf && (
             <p className="text-warning text-xs mt-1">Cannot transfer to yourself</p>
@@ -803,7 +804,7 @@ function TransferForm({
         </div>
         <button
           onClick={handleTransfer}
-          disabled={isPending || isConfirming || !isAddress(recipient) || isSelf}
+          disabled={isPending || isConfirming || !normalizedRecipient || isSelf}
           className="w-full py-2.5 rounded-md font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-red-600 hover:bg-red-500 text-white"
         >
           {isPending ? "Confirm in Wallet..." : isConfirming ? "Transferring..." : "Transfer Name"}
