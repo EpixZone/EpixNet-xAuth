@@ -1,691 +1,96 @@
 {
  "address": "epix1xauthduuyn63k6kj54jzgp4l8nnjlhrsyaku8c",
  "address_index": 42874048,
- "background-color": "#3F51B5",
- "description": "Sample trusted authorization provider",
- "epixnet_version": "0.0.6",
- "files": {
-  "assets/Arc-VDBY7LNS-BChRXCXW.js": {
-   "sha512": "8b37f717b04f98a6b86bc46751d9521d595770e263d3876e138410d74cb42567",
-   "size": 6622
-  },
-  "assets/Brave-BRAKJXDS-mq-Xo37j.js": {
-   "sha512": "52146eb7e0930e14b046bcc336d733fcd470dab6d7aa562c5b381e357daa368a",
-   "size": 4260
-  },
-  "assets/Browser-76IHF3Y2-BMhRaC5Z.js": {
-   "sha512": "b5e50cbb2a55eff2c3ec6cd98e971739e668f6818bfaee7903608fc983b7284a",
-   "size": 11824
-  },
-  "assets/Chrome-65Q5P54Y-DR9MQEVr.js": {
-   "sha512": "95aade194a2f5eb420da6d6e71aa016fd292e88fef9075ce5ff03ebb3f475ff2",
-   "size": 1723
-  },
-  "assets/Edge-XSPUTORV-DEoZslQE.js": {
-   "sha512": "95fd23378ac5589d10b52a3d91092949f052ea370bf7b672c3f0ed3550c53648",
-   "size": 5820
-  },
-  "assets/Firefox-AAHGJQIP-Bp_Hm04m.js": {
-   "sha512": "ba9b89fcaf6a749a809e431da49e95fd80f236d4daec81b014f9b03f166f792c",
-   "size": 15189
-  },
-  "assets/Linux-OO4TNCLJ-B0aw93n9.js": {
-   "sha512": "d24c12055459df1eae6fb4e79e6634b20f3c6373ae9a0cefba3f4eb811172025",
-   "size": 91134
-  },
-  "assets/Macos-MW4AE7LN-Vvm8Drw3.js": {
-   "sha512": "2c892da2ab5a6960a927005320b6a4b2e76efb0c20a8fe368a24877a5024ba6f",
-   "size": 49680
-  },
-  "assets/Opera-KQZLSACL-Cwv5MDFy.js": {
-   "sha512": "c4c1d507b39d696839f997b9e16261ad3875bfabf9d439909bc8bfcdeab9f05e",
-   "size": 2096
-  },
-  "assets/Safari-ZPL37GXR-C4Ggg6rz.js": {
-   "sha512": "631b8240f46239482cbebfdb887bcc3f070805a930bf6ac18fe5bbb72cf7d50b",
-   "size": 13751
-  },
-  "assets/Windows-PPTHQER6-BlyV2p7Y.js": {
-   "sha512": "f9177814af105b7329aa8afca2eecc69076ba6bd2c4b92267fbf31f34f110aa5",
-   "size": 524
-  },
-  "assets/add-CsxvpPXn.js": {
-   "sha512": "7a273a2e20aa851f71699a85aaeb744e81984af507c1bb13bc93fa64942cffe4",
-   "size": 826
-  },
-  "assets/all-wallets-Co4FHyeS.js": {
-   "sha512": "851ae0b0e465ba61131fff3ce513de2988a02bd3c58794d7f3da0731dc2044a3",
-   "size": 506
-  },
-  "assets/apechain-SX5YFU6N-q5qBv-mp.js": {
-   "sha512": "1c50a7cb3aefa5a04ebbd2e552f3884855b41ed80c06b9c91027c71f39ebb25a",
-   "size": 1459
-  },
-  "assets/app-store-CGGe4Yxx.js": {
-   "sha512": "72ab9f7b20e7d1554293e921bbf81588d90b34d374a6667b7ad97d4a32b04a83",
-   "size": 1255
-  },
-  "assets/apple-C7am7xZ0.js": {
-   "sha512": "74c384d1daa115227e38bbfa9674d2899c555e4808c439000887e9aa6d8540bf",
-   "size": 1016
-  },
-  "assets/ar_AR-44JUQ6EW-BMX-am0v.js": {
-   "sha512": "67ba193c4c0cfd5a7418e847d0ab43c77b729bce87e0b194e5a287dabcdc12ff",
-   "size": 69613
-  },
-  "assets/arbitrum-WURIBY6W-CqVkHBr5.js": {
-   "sha512": "6e658fb74fa0e41ca34715dc548921a0b68b4479cfdf7ddb61de602c72269d43",
-   "size": 2591
-  },
-  "assets/arrow-bottom-B_LYPQue.js": {
-   "sha512": "13ef95cbbe865edcccc5f9e3078d18ad4b97fadb56b95922a7101caa6ee5f6dd",
-   "size": 471
-  },
-  "assets/arrow-bottom-circle-Cdr_QyNz.js": {
-   "sha512": "54695e236b0582257dcc9d7612020c9349fba884ac17addfe92cabb9f40c26db",
-   "size": 1186
-  },
-  "assets/arrow-left-DuaUH5jY.js": {
-   "sha512": "65581fde5edc08bc64275fa050fd32051d5f480c6112f6c609f47d221cc34453",
-   "size": 471
-  },
-  "assets/arrow-right-CBFOm00a.js": {
-   "sha512": "dfd29586b8b9db4a45768bbd4c14acf656738c51a3bfb3ee15b6a3d30078bc12",
-   "size": 473
-  },
-  "assets/arrow-top-BBOWuZH6.js": {
-   "sha512": "4c8d4aee943c26eeeca91ba242b01f16041352a2463f6909780ee3d0e00e13bc",
-   "size": 469
-  },
-  "assets/assets-Q6ZU7ZJ5-P8HioiAD.js": {
-   "sha512": "07bb4c57bd73df5ac1b0031e9d9c94be7ed97758dc07e0cda507b4fafafae392",
-   "size": 23619
-  },
-  "assets/avalanche-KOMJD3XY-Dsn_JPR4.js": {
-   "sha512": "a00c913535ac6f0e0f2e21fcd7f0b13d0310b1e972f0568739a8fc96f647e59b",
-   "size": 1268
-  },
-  "assets/bank-DWQnIHgl.js": {
-   "sha512": "507b4e29d3c9381d809d2d8df85b1bb8b2125792701707929fd6a0d93a120d2e",
-   "size": 999
-  },
-  "assets/base-OAXLRA4F-CoYTVIiL.js": {
-   "sha512": "cff325c90d93711e6433ad2f9ba1f77e94b934e29de2dc8aea937a3142dcc581",
-   "size": 604
-  },
-  "assets/baseAccount-44UITRK7-CsjdbWCf.js": {
-   "sha512": "0d80c0048a1510bab812283d90d9b2ec185b9ba01dc491362b8ede0df01419a6",
-   "size": 902
-  },
-  "assets/basic-1ccn5tRC.js": {
-   "sha512": "e4d9cf85b3769d18674873c26b1b13b5cf8187a0ba939102f824f5a27226a1ae",
-   "size": 144364
-  },
-  "assets/berachain-NJECWIVC-DumxnFvf.js": {
-   "sha512": "15f5501f4c04bf6357000ed8a023b1bcbb4cccaa528173ebc08f465bb5030c10",
-   "size": 3776
-  },
-  "assets/blast-V555OVXZ-BbhJh1tj.js": {
-   "sha512": "c98b233589076bbc1f486a12e90b601bbebecb621a8e8c183cb58efea00b6383",
-   "size": 1670
-  },
-  "assets/browser-A-RevKqf.js": {
-   "sha512": "2d618920d0496f847a8506316a7b8ff9ca1d74f190fc649aace4fcf676364039",
-   "size": 1636
-  },
-  "assets/bsc-N647EYR2-B2nLKXWV.js": {
-   "sha512": "a7cea1093514c77fe416fe790ca96e11709852d270f53e696d3f6c355e9df9a8",
-   "size": 1587
-  },
-  "assets/card-BX7BQ288.js": {
-   "sha512": "bff02750f6af1e79e2b2369eadc5d217250913d171b5e3a927bc09e8990cfad5",
-   "size": 2648
-  },
-  "assets/ccip-JmutOL0-.js": {
-   "sha512": "38eb781b29ea61684c0622a3d72fc73f3106c1ff926f6d2f7536036a700611e8",
-   "size": 2669
-  },
-  "assets/celo-GEP4TUHG-CenIBYLU.js": {
-   "sha512": "284a53d2a9e6da3843074ec938043689c2879b11ab1c71b7df32c1d263f943c3",
-   "size": 510
-  },
-  "assets/checkmark-B_SpplYo.js": {
-   "sha512": "dc4f1bab317a1944d51033c3c112a2cc6b005451ef0013a7cda7e690687d9777",
-   "size": 762
-  },
-  "assets/checkmark-bold-2DGNxHFm.js": {
-   "sha512": "723a842fe7dfe1ebc38f6c3a07069d0e6a72e6debf4bac771098fa22db6f8ba5",
-   "size": 705
-  },
-  "assets/chevron-bottom-CAxusoTG.js": {
-   "sha512": "bc73880d6030d523235eeeb38d73eddb5de7d9db3b074b2a0baa2a5bd371d665",
-   "size": 457
-  },
-  "assets/chevron-left-728vLDmJ.js": {
-   "sha512": "76095ca67bbb3f74e566809492b93e36c9e347061857acbf2eb2d0e4f25807e7",
-   "size": 454
-  },
-  "assets/chevron-right-0y9yHU91.js": {
-   "sha512": "b209f55e987848837a62e63aff7f686a325ce2a46107cf38ec82e196e23eab1a",
-   "size": 457
-  },
-  "assets/chevron-top-Cedr26CE.js": {
-   "sha512": "1440acce7a65fa5993a12aa1345fd1889776e41e15ad1504a7ff5a2c7a77bfe6",
-   "size": 455
-  },
-  "assets/chrome-store-Dlmf262P.js": {
-   "sha512": "01237513af5d6c65ad5009d58375d2fa914a2e6b378aa2969a79f5599c5c8f17",
-   "size": 2648
-  },
-  "assets/clock-BJcj9R8q.js": {
-   "sha512": "29762ba8af9bda3be1cbb2a71ddcbbdda32e4f295aec83d1e7946b23224394b5",
-   "size": 897
-  },
-  "assets/close-DNaBQjPf.js": {
-   "sha512": "267755d9e103b8cc541ab885836f84502cf80035a60ba11a63c22681fda0f381",
-   "size": 498
-  },
-  "assets/coinPlaceholder-Cr3khDmO.js": {
-   "sha512": "c2f742e1df41f04bbaf77e5b2e4c8473eb2e2e4b4560b283f1cead9d8568ae1b",
-   "size": 560
-  },
-  "assets/compass-CRB20BaA.js": {
-   "sha512": "1cf5699cf15b37c10a2ce20da2e57770eaf30cdfaad8f33f4acb8d19f570aaf5",
-   "size": 580
-  },
-  "assets/connect-UA7M4XW6-IY3X6Bmr.js": {
-   "sha512": "9277fb84836fbb642bd85275f9981fc18feb51fbc50fdfce3efd06da52101abf",
-   "size": 3545
-  },
-  "assets/copy-DcTmgpA5.js": {
-   "sha512": "c197dd1ac0caba74feb64bcf447294ac36c1091c346c2187a7c7ce0dcf3e2f33",
-   "size": 3874
-  },
-  "assets/core-36Iry9g9.js": {
-   "sha512": "b3c3cb48b2665fb8c7a2cd8a35e9908212d9e6d1f65a9dfc22573eed61652f1a",
-   "size": 509254
-  },
-  "assets/create-FASO7PVG-D_rvSpre.js": {
-   "sha512": "76f5cdc498d1c6ae19400eb69d0e39ddc7404292f4876ba081a4229cf2197f5c",
-   "size": 4328
-  },
-  "assets/cronos-HJPAQTAE-BEOvlOC4.js": {
-   "sha512": "331d226670b296b6c2a8e8714bf0f337a95a9f838a656e7c72c7312ba3512367",
-   "size": 1520
-  },
-  "assets/cursor-DzxvBuEn.js": {
-   "sha512": "8a54b706bb72878d35b99e58b5998e54979fcb9b9a2efa7bd3e9cfa8b2050821",
-   "size": 316
-  },
-  "assets/cursor-transparent-Cl_d4BfU.js": {
-   "sha512": "79cdb074794cafd3c8455e377376efad9a778dfd5f60bb88b1e8346ba6957721",
-   "size": 637
-  },
-  "assets/de_DE-PYAO5YD6-BWlqPWgO.js": {
-   "sha512": "c37f52c56612235f705c5291fe54adbd726f728aa9307970f9276917eb5ce383",
-   "size": 65394
-  },
-  "assets/degen-FQQ4XGHB-CeHTs88l.js": {
-   "sha512": "80c096959a8bd07df39e479125024ae1edb6076d1b34c644519b4ceb96ef012c",
-   "size": 1486
-  },
-  "assets/desktop-CF2GdaG4.js": {
-   "sha512": "d7bb435c39ff4ba500ffa442b00ed610109fd9135c1c57ebcc6ec83f4bfff3c0",
-   "size": 1330
-  },
-  "assets/disconnect-C7xuTk1t.js": {
-   "sha512": "1449b90230d932c0464297f8ecc1e037a6e4e24b2b77f48891b1ff348e62f02b",
-   "size": 945
-  },
-  "assets/discord-699ACtHd.js": {
-   "sha512": "58f428b6771e7c740e4f51099b25680cb718e333107fb263e014e7ba19559c28",
-   "size": 1358
-  },
-  "assets/es_419-HRGOJ6VT-D-qzxUM-.js": {
-   "sha512": "a4e4a62b9f5123788ab7253920f3d0d870582e694ad71c6c67e79818260af15d",
-   "size": 60297
-  },
-  "assets/ethereum-RGGVA4PY-SWGOlkuk.js": {
-   "sha512": "b7b3f7b667306948fe78d1c158fb49156e30260c98add35301725cc2b12c4d66",
-   "size": 1373
-  },
-  "assets/etherscan-BC-spj0-.js": {
-   "sha512": "3f8c286e030d36ac2b9893451c7797e32cb2200acb5b0a6f527c4e4abe562a67",
-   "size": 761
-  },
-  "assets/events-DQ172AOg.js": {
-   "sha512": "48f7a03a4fe8a76ff77d46b869eea9571d1f31e8fa0385d4d35b8c82a04f2ce0",
-   "size": 6126
-  },
-  "assets/exclamation-triangle-C8v_eCol.js": {
-   "sha512": "6ffc8a803ac1baf8fe02915579d0a12e9c28c1606c663d830e79107d0de546b9",
-   "size": 2478
-  },
-  "assets/extension-Cyd2eSzA.js": {
-   "sha512": "4dab4970d96bf7ee57ddabeda47f35b5fd2dd9968f10ad609fdb4ebd452db744",
-   "size": 1487
-  },
-  "assets/external-link-DDQlKbr-.js": {
-   "sha512": "33650148207002b3c346961cee8180f9fbf9dbd30aac6661e9a6559dcc5a7567",
-   "size": 456
-  },
-  "assets/facebook-DjMXgfUb.js": {
-   "sha512": "1a06eacbf8fbdfd90f9bb7726a0e9f75baab0ffc5480ceddd7be6446472f3a6e",
-   "size": 1291
-  },
-  "assets/farcaster-Bl2YybS3.js": {
-   "sha512": "996919d9f21f3f72d9868ab924ff9ba53cf7e1b036c981f85c7a4464aac783e9",
-   "size": 1073
-  },
-  "assets/filters-DglKSrJU.js": {
-   "sha512": "53d7eb93121bbdbafaafe4f8a36f131ba139fa5a3d33963de8dd172ecbaa91f6",
-   "size": 507
-  },
-  "assets/flow-5FQJFCTK-CUie2reO.js": {
-   "sha512": "1e00618e9e1b2f006fde8b5e6b4392b762b0a5d0ffa07637d7902091cdb7cd57",
-   "size": 864
-  },
-  "assets/fr_FR-IGGVC6RM-D8LpUM75.js": {
-   "sha512": "fe4eca8e123fc8fd53e1191e3cbfa56a6c6b454b3c3c4f2cc0fd905c9087b938",
-   "size": 66055
-  },
-  "assets/github-qJpUQMb0.js": {
-   "sha512": "3cd1f9d3945f00b8f13298906a718c5433bfda5c23bc2c1016702ffded5bb482",
-   "size": 1187
-  },
-  "assets/gnosis-37ZC4RBL-B137OtHZ.js": {
-   "sha512": "9898045ed750fbd2c3a336f0f9c9ec6b9b5f8511857f3a6fa91964e3a29d4ae5",
-   "size": 1796
-  },
-  "assets/google-CKI_B88a.js": {
-   "sha512": "24630e13dcb40b21addb24ef5f9e4cc80413ca2b14b873d491f30e352e70f359",
-   "size": 869
-  },
-  "assets/gravity-J5YQHTYH-Bj6B0uod.js": {
-   "sha512": "235748d6c15a8c2b92a48fbf54642af5b8d1b62835ad9db5cdf3b44de4c35850",
-   "size": 1538
-  },
-  "assets/hardhat-TX56IT5N-CV1FY-wE.js": {
-   "sha512": "88db30628de44b8841e8735faf9d85077e2cf35f8242e01de57efbfee4e816cf",
-   "size": 4200
-  },
-  "assets/help-circle-BWcXxEUP.js": {
-   "sha512": "9743cbd8a1096b95200edaf65ec89f57e98f9b6d3bb6c96dbdad11876546843f",
-   "size": 770
-  },
-  "assets/hi_IN-XSKAA3MF-C3QUpWyP.js": {
-   "sha512": "4f0e1c6c8a5f0e69f62cd937d8edfdd14795f7203a99e6b3b1813273ff913c2b",
-   "size": 107997
-  },
-  "assets/hyperevm-VKPAA4SA-CHwraEsx.js": {
-   "sha512": "4525c93d14398fad80846bf51313ecbda09bae3f90c9dfd9e1a96304f6b45631",
-   "size": 725
-  },
-  "assets/id-Baa4jdT-.js": {
-   "sha512": "88eedb7bc3fb59567478b54d026bd98b4dc48a9826b16c5aa204dcabed5aafb1",
-   "size": 1805
-  },
-  "assets/id_ID-KUOB4UAL-K9y-nRWm.js": {
-   "sha512": "c38b104c87013c7d079db2c3833496e418e9e9f96c4a8f062b20e090de194261",
-   "size": 58818
-  },
-  "assets/image-201eXVZI.js": {
-   "sha512": "13a4da2570c058bc68ab12b1a4b191f399bdde8a84706ff285f13a3a18d20a7e",
-   "size": 3550
-  },
-  "assets/index-B2OZ5GMX.js": {
-   "sha512": "878840954da4754a3daf82c8962b65ced1ddc635eb4456479f17729569aa95a6",
-   "size": 312069
-  },
-  "assets/index-BTNp6rRD.js": {
-   "sha512": "46d1b5e2fc6864aba742d4cae93ba70c42edf42a864507cad91bdb673f527d9f",
-   "size": 9389
-  },
-  "assets/index-BbS6Fsyt.css": {
-   "sha512": "29bc4276fb023632de52e9e39f25e6880ee640e7afb14d9fef21cb363ce85988",
-   "size": 44601
-  },
-  "assets/index-DH-NwN8i.js": {
-   "sha512": "a0675a741502f7b99b564286063a15ea867a983efcac43dc89e1855c66bcaff8",
-   "size": 925029
-  },
-  "assets/index-DUcLMgwb.js": {
-   "sha512": "9a1a7a02df8b65606340fd623920542ef139e3770c0843e75bbb940f1b4d24da",
-   "size": 39715
-  },
-  "assets/index-ISG4l5yV.js": {
-   "sha512": "ff3a9cd80d94705b52d3f61d3d31b7a4e28d22669a259d978104ae7579f2f6d1",
-   "size": 580984
-  },
-  "assets/index-kzlEvkEN.js": {
-   "sha512": "4a216db38611838b366cdb68d915c23d503ba5a8f1184bbadc79fede66208ba2",
-   "size": 17278
-  },
-  "assets/index-nibyPLVP.js": {
-   "sha512": "233ec8b45b8d71208695440dd58a6b0d61eb730787862e46d6a1583c7e571516",
-   "size": 948
-  },
-  "assets/index.es-LWcI7ng6.js": {
-   "sha512": "8e8e0a0deba0aec961462da5f2efdda0b97eb375b7310fc473f7caa324cf20fb",
-   "size": 416943
-  },
-  "assets/info-Cyf8NKXi.js": {
-   "sha512": "2f4754f6786a2423fd30b79439782f40d076ff5bb9cdc3958650e0633ce8dc89",
-   "size": 2320
-  },
-  "assets/info-circle-CzZwe8G3.js": {
-   "sha512": "f6f16e087f59d0772f6af7ed162cbc7e46f53d5c85fef5176a21e418add39e55",
-   "size": 531
-  },
-  "assets/ink-FZMYZWHG-62p-5IK5.js": {
-   "sha512": "e0826f03c97f128ec37f55271d2f9d9cfca38425d55dc620394623320641fe32",
-   "size": 1382
-  },
-  "assets/ja_JP-4WRQ63RX-Ct5pF4ug.js": {
-   "sha512": "27de33baa752d6ff495cf02f0ce041a5610afcdd00f66077480550ea23ff30eb",
-   "size": 72046
-  },
-  "assets/kaia-65D2U3PU-JmuLQ4gC.js": {
-   "sha512": "3081f5698845702c7e48dda413558ddb5ac47da6116aae768cb368479f112696",
-   "size": 1481
-  },
-  "assets/ko_KR-I2K7AIEP-B5gw8Mwb.js": {
-   "sha512": "35cd837d91757818ab3dadeb7d9b6b36cdb165498794e5b3578b5757c6ddbd19",
-   "size": 63976
-  },
-  "assets/lightbulb-DtVO7cp5.js": {
-   "sha512": "41b932d4898bf04ffc16c988ba27e4bb3fe154a74d27ce574b8a4dd3dcafd8e6",
-   "size": 2772
-  },
-  "assets/linea-QRMVQ5DY-DuI3vv0d.js": {
-   "sha512": "5e7974026d2b21833790c29f4545ac43f2c0a075584d6d875a34997a48daef8b",
-   "size": 1050
-  },
-  "assets/login-UP3DZBGS-Db_wM5oQ.js": {
-   "sha512": "fdecb6cdd43226b57fa759a6a88fc4c2506b38d4e7ed7ca28edb702c0a20b8e0",
-   "size": 11995
-  },
-  "assets/mail-BD5HCsDO.js": {
-   "sha512": "e01891af6d7874146e7ea3b04ca6845004aa6093baf53515c24b83a267fd180b",
-   "size": 1263
-  },
-  "assets/manta-SI27YFEJ-CpVOKa06.js": {
-   "sha512": "056ea55c4d05da22a44422e42bcd05a3f2bdd63baf1bdc0c45583e67c35cb46c",
-   "size": 3199
-  },
-  "assets/mantle-CKIUT334-DR2WgqzU.js": {
-   "sha512": "246b4e951e1716f49575a0458842bd8a5b6acd48a0b8ec93815826ab1f34770d",
-   "size": 5269
-  },
-  "assets/metaMaskWallet-SITXT2FV-BlemcphV.js": {
-   "sha512": "355f6528c25875c8660edc3e0b1858c8100cd769b63099dcda48b87a804737e1",
-   "size": 8512
-  },
-  "assets/metamask-sdk--prO0x3v.js": {
-   "sha512": "3a0bfad2b0ef9cc75b51ac1ce38b4901488328ada9639725d68664cdc6ec83be",
-   "size": 558063
-  },
-  "assets/mobile-CDL5afWl.js": {
-   "sha512": "cadf89a487f5aabda5b165b7958427aca8d5013311a84557a035c76eb0e97d91",
-   "size": 651
-  },
-  "assets/monad-4KWC6TSS-DVXSkpiz.js": {
-   "sha512": "701a9d3a3114e344a02e5a9371d9fa32865f78b80f0037b63696e4114bc16ce4",
-   "size": 739
-  },
-  "assets/more-D9naddEF.js": {
-   "sha512": "e7f4ff1b8ed3ecd66ee11b09879301f4f3d7211974c587cc78f59a4c4344f08c",
-   "size": 547
-  },
-  "assets/ms_MY-6VZW6Q3Z-BtFD07hR.js": {
-   "sha512": "ea143dda17a6a47c635594e3779cd53ee47f3884dabc94217c0eabb89c1e6590",
-   "size": 59650
-  },
-  "assets/network-placeholder-TReZzxcj.js": {
-   "sha512": "9a62f91a922b65b1ae3c07156be554e5cf3a5b73afe3af4c3723bd6930af31f8",
-   "size": 1711
-  },
-  "assets/nftPlaceholder-DToCGUj_.js": {
-   "sha512": "11a48e845fcc10869f932328ba0554149c2d11bc71ba022d8a991de4c810777b",
-   "size": 1808
-  },
-  "assets/off-CVVYB2jg.js": {
-   "sha512": "413f88ebb387b1cf31f31b01771890ee8b7a0c31a1a48cb46785a76ab6d97244",
-   "size": 491
-  },
-  "assets/optimism-HAF2GUT7-ec6Nqxs9.js": {
-   "sha512": "d88ecadb9d459c3a6994d19ff95f38059b66b9e72b6ad38c8aaaac62f3c50391",
-   "size": 728
-  },
-  "assets/play-store-vIfR2slm.js": {
-   "sha512": "9978569961659d29f6b8d7ec4d15ca3ee4d319290bd4db4d20ab53fe5ec976fc",
-   "size": 1064
-  },
-  "assets/plus-BBDfpBi0.js": {
-   "sha512": "15d3a20d30d50a59f84bee20691d5566b909160dfdf55cadc187f78f6f07f4cd",
-   "size": 821
-  },
-  "assets/polygon-WW6ZI7PM-DXlmm4L1.js": {
-   "sha512": "0feb5b5139e2fa294aec8a0bec3f3f8a9d1cb43e348a2a7879caa65e8e6a4055",
-   "size": 1530
-  },
-  "assets/pt_BR-N3XOZ4SV-CvVpfsHb.js": {
-   "sha512": "dcb857e012fbba99ccf6a9bd5937c0ee3886de98394309441dba1e8a8a55d3b4",
-   "size": 59959
-  },
-  "assets/qr-code-B_qplYLJ.js": {
-   "sha512": "9080342b516f16a605d19889f90c44f4f0d0fc59b6ab1e0c0c2bae67654f3fd9",
-   "size": 1573
-  },
-  "assets/rainbowWallet-O26YNBMX-DUhYus-9.js": {
-   "sha512": "98b7aef39266034b588d6dc868c35b306db9581da09d03c35fb651726fa05187",
-   "size": 5120
-  },
-  "assets/recycle-horizontal-DWfsbiEb.js": {
-   "sha512": "7e612f63c0303a7ec85f13d315279783cdd07e57711eedc7cff03c1d66e06685",
-   "size": 1402
-  },
-  "assets/refresh-Co1UfJHl.js": {
-   "sha512": "02f9c5e76654a11268a95a18f5376d56cba8b0e82f99163671c40c478946831e",
-   "size": 547
-  },
-  "assets/refresh-S4T5V5GX-CwqIaaxK.js": {
-   "sha512": "225ee84045e914cb1a0c710582ac1f6c0c5483dfae4ac652922ba6b349c8d527",
-   "size": 3004
-  },
-  "assets/reown-logo-CGMbWEml.js": {
-   "sha512": "79a137fabc6f45450680ec0a41d7e9cf5c770f1815728ebb2bc83d24fb10c46b",
-   "size": 2661
-  },
-  "assets/ronin-EMCPYXZT-N-QBHZdV.js": {
-   "sha512": "69893b2052895f6b1a0c7e48d837ae4104016bb6112ca27192bf6d1ca12a6b55",
-   "size": 2669
-  },
-  "assets/ru_RU-IITAPRET-DOj6Jzj7.js": {
-   "sha512": "aa32e2e34344f53bdf718012b76ec44ec6f135e4e369189f5c3ff32c328e1db1",
-   "size": 88789
-  },
-  "assets/safeWallet-5MNKTR5Z-D-5imDLD.js": {
-   "sha512": "04aad56a329e79c9105948c53d82704736546acd1af1a91da5d7701be332b6eb",
-   "size": 1819
-  },
-  "assets/sanko-RHQYXGM5-OX010CbN.js": {
-   "sha512": "3742129ee4f64f0c5d6d014fd08beb3cb2fd627d0479723de7804ec2e791f3d9",
-   "size": 21925
-  },
-  "assets/scan-4UYSQ56Q-CjMz6-XC.js": {
-   "sha512": "2f3225dd7af0cd91960855212d056467cef4cb4ec34b12421319d7bc1597aec2",
-   "size": 4586
-  },
-  "assets/scroll-5OBGQVOV-DJFECiai.js": {
-   "sha512": "2e4e30eb897381c56df6503331956bd46cb31ee8377025fb489e20b68cb6e5a4",
-   "size": 2632
-  },
-  "assets/search-DuR4ptbH.js": {
-   "sha512": "fcf974abf7f751dd225dddb6851db91ff28abb7fd864776bf5c1cbffaba62c18",
-   "size": 495
-  },
-  "assets/secp256k1-BqFOr1OP.js": {
-   "sha512": "4539b49582e918292a0d3c18058b9862422e85e913cf2aeea11b854c19ee7560",
-   "size": 31490
-  },
-  "assets/secp256k1-BzjfSZ5U.js": {
-   "sha512": "8395c2dadf93a295db523ab4e43795c44c7829b9254e5def5459b218ef40fc45",
-   "size": 31463
-  },
-  "assets/send-BKLlEec3.js": {
-   "sha512": "35a8ca549329a2dfe11260e103bd614a96dbb4e5da810e3cd27c2148fe352f4e",
-   "size": 2481
-  },
-  "assets/sign-A7IJEUT5-CGsRnPrd.js": {
-   "sha512": "1e748f5d7d0dc6588c2514712c5799f075a26d6004cd6eee13e3eef40246d9c4",
-   "size": 5549
-  },
-  "assets/superposition-HG6MMR2Y-bRkgatRO.js": {
-   "sha512": "98c18c805ccf13a2c129e198827cfe0eb71c055d921f7e5b3e22d6f6bfbcbb28",
-   "size": 988
-  },
-  "assets/swapHorizontal-DsOSyzEe.js": {
-   "sha512": "1c04c25a1edb634aa7a04ab310a8cd7f31b8eebed7d7288f20844b975041a94c",
-   "size": 608
-  },
-  "assets/swapHorizontalBold-CAxAuRQ6.js": {
-   "sha512": "0c20a3b13870ada5d8d8824a456b5b6fce4d3b86de5b76625ea8ece7708df9cd",
-   "size": 1221
-  },
-  "assets/swapHorizontalMedium-CjGd0SMK.js": {
-   "sha512": "846bba8dcb1fe300497c438c98bb248a12e9ca4d56612cb749b73d3db1c622b3",
-   "size": 1361
-  },
-  "assets/swapHorizontalRoundedBold-B5lPTGQD.js": {
-   "sha512": "f2b0e037663a9231e3a999973c19d0cb2c3b4b86a81562d032f43c475fd5b6f5",
-   "size": 1513
-  },
-  "assets/swapVertical-DQxdMQhb.js": {
-   "sha512": "d4e716267e01e8ed37f835ffbc0e4043209f1899b0517e8d8b78d2d74a19f29a",
-   "size": 604
-  },
-  "assets/telegram-BTi0xzmj.js": {
-   "sha512": "766bc7ba2a0256a582c101390a7e6f183f72634126c3b2fe54d914be357f89d0",
-   "size": 1509
-  },
-  "assets/th_TH-3ZQCKCQE-BcHUN2Q4.js": {
-   "sha512": "5237afd033d783acc21dfddce168f443856b7d7bdbea52c90372eab42c458e89",
-   "size": 104066
-  },
-  "assets/three-dots-CxsCDYWy.js": {
-   "sha512": "3fe24ef463c917b8953eb12a5d219b9985a9ec7d6f9b17d2aee4693cece66ce3",
-   "size": 896
-  },
-  "assets/tr_TR-QUPUGMUF-CwpF6ZFn.js": {
-   "sha512": "4903d2468149e072cc5dc2003ea0bf2acacd5ab24a2e8145b31d91a99e6b47dd",
-   "size": 61980
-  },
-  "assets/twitch-CQ89njdC.js": {
-   "sha512": "46dd0420e086964d9587796a0992c3546dc467c82fb00f954f1c20b1148c8367",
-   "size": 956
-  },
-  "assets/twitterIcon-DOJh2pD3.js": {
-   "sha512": "f9e1f9de64a04eae1040c2e3154c795d00c6cd2f6668f39be103fd4cf64e0adc",
-   "size": 641
-  },
-  "assets/uk_UA-SSN6SV5E-IlYYyRC6.js": {
-   "sha512": "79cec0604481c2edb3d52aff821ebd717e1a294907377f40cad50e09aa463026",
-   "size": 87228
-  },
-  "assets/unichain-C5BWO2ZY-BfguYsnu.js": {
-   "sha512": "3dd0e4729e62452f7487db015c9e3e34750556ac1f0efb059e0cf15854e1583c",
-   "size": 984
-  },
-  "assets/verify-B79eEaoG.js": {
-   "sha512": "5acc881fe38dc4f586447365eeec88ca57cceba8d5061cb7ed0f7260f21bf239",
-   "size": 1529
-  },
-  "assets/verify-filled-e8sX-nPx.js": {
-   "sha512": "2f45a15e46ca0bef970dc61b74281ed83283f8fff58d9b12da7ba9afd46a9eb8",
-   "size": 824
-  },
-  "assets/vi_VN-7BUVRNYY-CZ9S75qZ.js": {
-   "sha512": "2ee14d3b5be58abeacd3dd7ecfd2c5fa73bacb15f16d8e0b37bb9cb6cf080286",
-   "size": 67433
-  },
-  "assets/w3m-modal-Dz3bBHub.js": {
-   "sha512": "86560a0c032c534443fbe541a7ed498fea69a234c08e98c08ee3ac811d3482df",
-   "size": 40113
-  },
-  "assets/wallet-XKj3GMg7.js": {
-   "sha512": "bfbf5e8b96be743d019def1ec32e6acc0a454c958af1b8ee827e293a799f1ce3",
-   "size": 777
-  },
-  "assets/wallet-placeholder-DKLf2h1v.js": {
-   "sha512": "4377c836eb3daf5121a95ef3d6b2da43b635c867927766e858d9068bbb013186",
-   "size": 1321
-  },
-  "assets/walletConnectWallet-YHWKVTDY-D3lyiczV.js": {
-   "sha512": "f057b9ccbabd042aabcc602f3b801bb22a17905c07263e13bb305676a6143a76",
-   "size": 1877
-  },
-  "assets/walletconnect-Bgnf3Cr0.js": {
-   "sha512": "49ee818cb213486f310aa7b426b42a4c24fdbddfb71541e991f46d5c098f918e",
-   "size": 4117
-  },
-  "assets/warning-circle-DlY7ZaPy.js": {
-   "sha512": "2c83b94b69628d47e87d0805189e815758a9160a350144c9ce0fb5a1047fbf03",
-   "size": 554
-  },
-  "assets/x-7kRupYwB.js": {
-   "sha512": "3cab8ae0fd632e4c23302344f378a1db127caa7db4e2cccea71862beae13be77",
-   "size": 626
-  },
-  "assets/xID-BXOeLFpR.png": {
-   "sha512": "c7241e0c723d4a95c5733a1afde6992297d4f972ac52d460eee65889a59088cf",
-   "size": 73134
-  },
-  "assets/xdc-KJ3TDBYO-DNV6zchh.js": {
-   "sha512": "6ac2a52f9a80c71da15956a959b8f2710726576cd21e2cbc46911a7dfb6047a0",
-   "size": 1311
-  },
-  "assets/zetachain-TLDS5IPW-Udhyw16T.js": {
-   "sha512": "aa91a92511b4fb5223dde377b0db6552c1d2400362bba49e858226cc56cc16c9",
-   "size": 597
-  },
-  "assets/zh_CN-HJBN674C-Baf0GEeT.js": {
-   "sha512": "fabd7e938978fab52fd788e72b210c681fb520c118a79a184cb4572277efc54b",
-   "size": 53478
-  },
-  "assets/zh_HK-JW3WLRKE-VztJKXL5.js": {
-   "sha512": "9b559f52c180edd3317c650a2fe1b41688c08a7187845ca1672d2eb97174cfcb",
-   "size": 54339
-  },
-  "assets/zh_TW-VNNRNXY7-aWfg7Qp4.js": {
-   "sha512": "54f344384b626e39c12025d436768e71ac4bde454d8de2ee5c59ad56cae662c4",
-   "size": 53480
-  },
-  "assets/zksync-DH7HK5U4-Dt4usFw6.js": {
-   "sha512": "46323e7008c26c4d0abd9f374ff5f878d7492cbe4b172287ae3d12b8edf85605",
-   "size": 1113
-  },
-  "assets/zora-FYL5H3IO-iB4wygST.js": {
-   "sha512": "2eaee8eae6c3766d2bedff1083e2f37032e7d3807dcf285d0c475e728311f521",
-   "size": 2681
-  },
-  "index.html": {
-   "sha512": "37302475d1696f2486182e1b68494d7cb9f33225c8773f07fec34d8ebb8fba65",
-   "size": 469
-  },
-  "xID.png": {
-   "sha512": "c7241e0c723d4a95c5733a1afde6992297d4f972ac52d460eee65889a59088cf",
-   "size": 73134
+ "background-color": "#5954CD",
+ "background-color-dark": "#151517",
+ "description": "xID: names, profiles, DNS and linked identities on EpixChain. Also the channel hub: per-identity key bundles and the anonymous message pool.",
+ "distribution": {
+  "default": {
+   "retention": "complete",
+   "unit": "package"
+  },
+  "paths": {
+   "data/users/": {
+    "retention": "complete",
+    "unit": "feed"
+   },
+   "pool/": {
+    "retention": "complete",
+    "unit": "package"
+   }
   }
  },
- "ignore": "\\.git/.*|src/.*|public/.*|node_modules/.*|package\\.json|package-lock\\.json|vite\\.config\\.ts|tsconfig\\.json|tsconfig\\.app\\.json|tsconfig\\.node\\.json|tailwind\\.config\\.js|postcss\\.config\\.js|LICENSE|README\\.md|dist/.*",
+ "edx": 1,
+ "favicon": "img/favicon.png",
+ "files": {},
+ "ignore": "(\\.git/.*|archive/.*|node_modules/.*|data/users/.*|pool/.*|\\.sign-cache\\.json|\\.gitignore|\\.DS_Store|LICENSE|.*\\.md)",
+ "includes": {
+  "data/users/content.json": {
+   "signers": [],
+   "signers_required": 1
+  }
+ },
  "inner_path": "content.json",
- "modified": 1775171620,
  "optional": "data/certs_.*",
+ "order_policy": {
+  "first_paint": [
+   "index.html",
+   "css/all.css",
+   "js/lib/maquette.js",
+   "js/lib/epixframe.js",
+   "js/lib/epixkit.js",
+   "js/lib/ethers.umd.min.js",
+   "js/utils/LogMixin.js",
+   "js/utils/Deferred.js",
+   "js/utils/Dollar.js",
+   "js/utils/Prototypes.js",
+   "js/utils/RateLimit.js",
+   "js/utils/Text.js",
+   "js/utils/Bech32.js",
+   "js/utils/Format.js",
+   "js/utils/Rest.js",
+   "js/wallet/Chain.js",
+   "js/wallet/TxErrors.js",
+   "js/wallet/XidContract.js",
+   "js/wallet/TxState.js",
+   "js/wallet/Wallet.js",
+   "js/Icons.js",
+   "js/Layout.js",
+   "js/pages/RegisterPage.js",
+   "js/pages/SearchPage.js",
+   "js/pages/MyNamesPage.js",
+   "js/pages/NameDetailPage.js",
+   "js/pages/PricesPage.js",
+   "js/pages/StatsPage.js",
+   "js/pages/AddPeerPage.js",
+   "js/XidApp.js"
+  ],
+  "prefetch": [
+   "img/xID.png",
+   "img/favicon.png"
+  ]
+ },
+ "pool": {
+  "channels": {
+   "class": "epix-pool-1",
+   "dir": "pool",
+   "fanout": 16,
+   "max_record_bytes": 200000,
+   "max_shard_bytes": 6000000,
+   "pad_buckets": [
+    8192,
+    32768,
+    131072
+   ],
+   "pow_bits": 20,
+   "since_week": 2957,
+   "sync_order": "newest_first"
+  }
+ },
  "postmessage_nonce_security": true,
- "signers_sign": "HNfz8jlgYVbSefZNAg3nChgd6KcV2ez+iVDofUI9k5g4ZUAZjn2/RaSXsKHCye+JgGjXeLxJTZOXLS3aBlxQBHk=",
- "signs": {"epix1xauthduuyn63k6kj54jzgp4l8nnjlhrsyaku8c": "HCBBB9f7r9b5/oDk8+2+p0kUpnBqdDXp/Vc2udrq4+t0dZs6wf6tzQTN6eZmOYOgrThL2NhBt0BR5SPUqVErvPc="},
+ "signs": {},
  "signs_required": 1,
  "title": "xID",
- "translate": []
+ "translate": [],
+ "viewport": "width=device-width, initial-scale=1"
 }

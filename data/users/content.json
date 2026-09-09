@@ -1,0 +1,19 @@
+{
+ "address": "epix1xauthduuyn63k6kj54jzgp4l8nnjlhrsyaku8c",
+ "files": {},
+ "ignore": ".*",
+ "inner_path": "data/users/content.json",
+ "signs": {},
+ "user_contents": {
+  "cert_signers": {
+   "xid.epix": ["chain"]
+  },
+  "permission_rules": {
+   ".*": {
+    "files_allowed": "data\\.json|data-[0-9a-z]+\\.json",
+    "max_size": 8192
+   }
+  },
+  "permissions": {}
+ }
+}
