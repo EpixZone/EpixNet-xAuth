@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <title>xID</title>
+ <meta charset="utf-8">
+ <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <link rel="icon" type="image/png" href="img/favicon.png">
+ <link rel="apple-touch-icon" href="img/xID.png">
+ <link rel="stylesheet" href="css/all.css?v={site_modified}" />
+ <base href="" target="_top" id="base">
+ <script>base.href = document.location.href.replace("/media", "").replace("index.html", "").replace(/[&?]wrapper=False/, "").replace(/[&?]wrapper_nonce=[A-Za-z0-9]+/, "")</script>
+</head>
+<body class="{themeclass}">
+
+<div class="loading-overlay" id="loading-overlay"><div class="spinner"></div></div>
+
+<div id="App"></div>
+
+<!-- Libraries -->
+<script type="text/javascript" src="js/lib/maquette.js"></script>
+<script type="text/javascript" src="js/lib/epixframe.js"></script>
+<script type="text/javascript" src="js/lib/epixkit.js"></script>
+<script type="text/javascript" src="js/lib/ethers.umd.min.js"></script>
+
+<!-- Utilities -->
+<script type="text/javascript" src="js/utils/LogMixin.js"></script>
+<script type="text/javascript" src="js/utils/Deferred.js"></script>
+<script type="text/javascript" src="js/utils/Dollar.js"></script>
+<script type="text/javascript" src="js/utils/Prototypes.js"></script>
+<script type="text/javascript" src="js/utils/RateLimit.js"></script>
+<script type="text/javascript" src="js/utils/Text.js"></script>
+<script type="text/javascript" src="js/utils/Bech32.js"></script>
+<script type="text/javascript" src="js/utils/Format.js"></script>
+<script type="text/javascript" src="js/utils/Rest.js"></script>
+
+<!-- Chain / wallet -->
+<script type="text/javascript" src="js/wallet/Chain.js"></script>
+<script type="text/javascript" src="js/wallet/TxErrors.js"></script>
+<script type="text/javascript" src="js/wallet/XidContract.js"></script>
+<script type="text/javascript" src="js/wallet/TxState.js"></script>
+<script type="text/javascript" src="js/wallet/Wallet.js"></script>
+
+<!-- UI -->
+<script type="text/javascript" src="js/Icons.js"></script>
+<script type="text/javascript" src="js/Layout.js"></script>
+<script type="text/javascript" src="js/pages/RegisterPage.js"></script>
+<script type="text/javascript" src="js/pages/SearchPage.js"></script>
+<script type="text/javascript" src="js/pages/MyNamesPage.js"></script>
+<script type="text/javascript" src="js/pages/NameDetailPage.js"></script>
+<script type="text/javascript" src="js/pages/PricesPage.js"></script>
+<script type="text/javascript" src="js/pages/StatsPage.js"></script>
+<script type="text/javascript" src="js/pages/AddPeerPage.js"></script>
+<script type="text/javascript" src="js/XidApp.js"></script>
+</body>
+</html>

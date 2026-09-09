@@ -1,26 +1,20 @@
-# dependencies
-node_modules/
+# node-side state that must never be committed
+.sign-cache.json
+data/users/*/
+pool/
+*.db
+*.db-*
 
-# build output (vite builds to project root for EpixNet serving)
-/assets/
-/index.html
-/xID.png
-
-# old build output
-/dist/
+# archived React source only (no build tooling at the root any more)
+archive/react/node_modules/
+archive/react/dist/
 
 # misc
 .DS_Store
 *.pem
-
-# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# env files
 .env*.local
 .env
-
-# typescript
 *.tsbuildinfo
