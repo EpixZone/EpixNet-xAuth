@@ -14,21 +14,26 @@
     get: async function (path) {
       var urls = this.urls();
       var lastErr = null;
+      // Keep this request's retry order stable across concurrent completions.
+      var startIndex = this.index;
       for (var n = 0; n < urls.length; n++) {
-        var idx = (this.index + n) % urls.length;
+        var idx = (startIndex + n) % urls.length;
         var base = urls[idx].replace(/\/+$/, "");
+        var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        var timer = controller ? setTimeout(function () { controller.abort(); }, 15000) : null;
         try {
-          var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-          var timer = controller ? setTimeout(function () { controller.abort(); }, 15000) : null;
           var res = await fetch(base + path, controller ? { signal: controller.signal } : {});
-          if (timer) clearTimeout(timer);
           if (res.status >= 500) { lastErr = new Error("HTTP " + res.status); continue; }
-          this.index = idx;
           var data = null;
           try { data = await res.json(); } catch (e) { data = null; }
-          return { ok: res.ok, status: res.status, data: data };
+          if (res.ok && (!data || typeof data !== "object")) throw new Error("The chain returned an unreadable response. Try again.");
+          this.index = idx;
+          return { ok: res.ok, status: res.status, data: data,
+            height: res.headers ? res.headers.get("x-cosmos-block-height") : null };
         } catch (e) {
           lastErr = e;
+        } finally {
+          if (timer) clearTimeout(timer);
         }
       }
       throw lastErr || new Error("Failed to fetch");
@@ -43,7 +48,8 @@
     names: function (b32, opts) {
       opts = opts || {};
       var q = "?pagination.limit=" + (opts.limit || 100) + "&pagination.count_total=true";
-      if (opts.offset) q += "&pagination.offset=" + opts.offset;
+      if (opts.key) q += "&pagination.key=" + encodeURIComponent(opts.key);
+      else if (opts.offset) q += "&pagination.offset=" + opts.offset;
       return this.get("/xid/v1/names/" + encodeURIComponent(b32) + q);
     },
 
@@ -52,13 +58,36 @@
       var res = await this.names(b32, { limit: size, offset: page * size });
       if (!res.ok) throw new Error("Failed to fetch names");
       var data = res.data || {};
+      if (!Array.isArray(data.names)) throw new Error("The chain returned an invalid names response.");
       return {
         names: data.names || [],
-        total: parseInt((data.pagination && data.pagination.total) || "0", 10)
+        total: parseInt((data.pagination && data.pagination.total) || data.names.length, 10),
+        nextKey: (data.pagination && data.pagination.next_key) || ""
       };
     },
 
-    // {name_record: {name, tld, owner}, peer: {address, label, active, added_at, revoked_at}}
+    // The chain caps a page at its configured maximum, regardless of the
+    // requested limit. Follow its cursor rather than treating one page as all.
+    namesAll: async function (b32) {
+      var names = [], seen = new Set(), cursors = new Set(), key = "", total = 0;
+      for (var page = 0; page < 1000; page++) {
+        var res = await this.names(b32, { limit: 100, key: key });
+        if (!res.ok || !res.data || !Array.isArray(res.data.names)) throw new Error("Could not load your names. Try again.");
+        var data = res.data;
+        data.names.forEach(function (entry) {
+          var id = entry.tld + "/" + entry.name;
+          if (!seen.has(id)) { seen.add(id); names.push(entry); }
+        });
+        total = Math.max(total, Number((data.pagination || {}).total) || 0);
+        key = (data.pagination || {}).next_key || "";
+        if (!key) return { names: names, total: Math.max(total, names.length) };
+        if (cursors.has(key)) throw new Error("The names list changed while loading. Please try again.");
+        cursors.add(key);
+      }
+      throw new Error("This wallet has too many names to load at once. Use My Names to browse them.");
+    },
+
+    // {name_record: {name, tld, owner}, identity: {address, label, active, added_at, revoked_at}}
     reverseIdentity: function (b32) {
       return this.get("/xid/v1/reverse_identity/" + encodeURIComponent(b32));
     },

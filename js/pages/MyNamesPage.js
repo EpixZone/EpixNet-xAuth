@@ -14,9 +14,11 @@
       this.primaryTld = "";
       this.tx = new TxState();
       this.address = null;
+      this.seq = 0;
       this.handlePrev = this.handlePrev.bind(this);
       this.handleNext = this.handleNext.bind(this);
       this.handleSetPrimaryClick = this.handleSetPrimaryClick.bind(this);
+      this.enter = this.enter.bind(this);
     }
 
     enter() {
@@ -26,23 +28,32 @@
     }
 
     onWalletChanged() {
+      this.seq++;
       this.address = Wallet.address;
       this.page = 0;
       this.names = [];
       this.total = 0;
+      this.primaryName = "";
+      this.primaryTld = "";
+      this.loading = false;
+      this.error = "";
+      this.tx.reset();
       if (Page.content === this) this.enter();
     }
 
     async fetchNames() {
       if (!Wallet.address) return;
+      var seq = ++this.seq;
       this.loading = true;
       this.error = "";
       Page.render();
       try {
         var res = await Rest.namesPage(Bech32.evmToBech32(Wallet.address), this.page, PAGE_SIZE);
+        if (seq !== this.seq) return;
         this.names = res.names;
         this.total = res.total;
       } catch (e) {
+        if (seq !== this.seq) return;
         this.error = (e && e.message) || "Failed to fetch names";
       }
       this.loading = false;
@@ -52,7 +63,9 @@
     fetchPrimary() {
       var self = this;
       if (!Wallet.address) return;
+      var address = Wallet.address;
       XidContract.read("getPrimaryName", [Wallet.address]).then(function (r) {
+        if (address !== Wallet.address) return;
         self.primaryName = String(r[0] || "");
         self.primaryTld = String(r[1] || "");
         Page.render();
@@ -84,12 +97,12 @@
           isPrimary ? h("span.pill.pill-accent", "Primary") : null
         ]),
         h("div.actions", [
-          !isPrimary ? h("a.btn.btn-sm.btn-soft-accent", {
-            href: "#SetPrimary",
+          !isPrimary ? h("button.btn.btn-sm.btn-soft-accent", {
+            type: "button",
             onclick: this.handleSetPrimaryClick,
             "data-name": entry.name,
             "data-tld": entry.tld,
-            classes: { disabled: self.tx.isBusy }
+            disabled: self.tx.isBusy
           }, "Set Primary") : null,
           h("a.text-link.mid", { href: url, onclick: Page.handleLinkClick }, "View")
         ])
@@ -101,12 +114,12 @@
       if (!Wallet.isConnected()) {
         return h("div.stack.MyNamesPage", { key: "my-names" }, [
           h("h1", "My Names"),
-          h("div.card.pad", "Connect your wallet to view your names.")
+          h("div.card.pad.stack-sm", [h("p", "Connect your wallet to see and manage your names."), Wallet.renderButton()])
         ]);
       }
       var body;
       if (this.loading) body = h("div.pad", "Loading...");
-      else if (this.error) body = h("div.pad.text-err", this.error);
+      else if (this.error) body = h("div.pad.stack-sm", [h("p.text-err", { role: "alert" }, this.error), h("button.btn", { type: "button", onclick: this.enter }, "Try again")]);
       else if (this.names.length === 0) body = h("div.pad.stack-sm", [
         h("p.mid", "You don't own any names yet."),
         h("a.btn.btn-primary", { href: "?", onclick: Page.handleLinkClick }, "Register Your First Name")
@@ -117,16 +130,16 @@
           "Set Primary tx: ",
           h("a.text-link", { href: this.tx.explorerUrl, target: "_blank", rel: "noreferrer" }, this.tx.hash.slice(0, 16) + "..."),
           this.tx.isSuccess ? h("span.text-ok", { style: "margin-left:8px" }, "Confirmed!") : null,
-          this.tx.errorText ? h("span.text-err", { style: "margin-left:8px" }, this.tx.errorText) : null
         ]) : null
       ]);
       var pages = Math.ceil(this.total / PAGE_SIZE);
       return h("div.stack.MyNamesPage", { key: "my-names" }, [
         h("div.row-between", [
-          h("h1", ["My Names", this.total > 0 ? h("span.dim", { style: "font-weight:400;font-size:16px;margin-left:8px" }, "(" + this.total + ")") : null]),
+          h("div.page-head", [h("h1", ["My Names", this.total > 0 ? h("span.dim", { style: "font-weight:400;font-size:16px;margin-left:8px" }, "(" + this.total + ")") : null]), h("p", "Manage your profile, linked identities, and primary name.")]),
           h("a.btn.btn-primary", { href: "?", onclick: Page.handleLinkClick }, "Register New")
         ]),
-        h("div.card-flush", [
+        h("div", { role: "status", "aria-live": "polite" }, [this.tx.errorText ? h("div.msg.msg-err", this.tx.errorText) : null]),
+        h("div.card-flush", { "aria-busy": this.loading ? "true" : "false" }, [
           body,
           this.total > PAGE_SIZE ? h("div.row-between.pad-sm", [
             h("button.btn-link", { onclick: this.handlePrev, disabled: this.page === 0 }, "Previous"),

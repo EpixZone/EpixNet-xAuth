@@ -30,6 +30,7 @@
         key: item.id,
         href: item.href,
         title: item.label,
+        "aria-current": active ? "page" : undefined,
         onclick: Page.handleLinkClick,
         classes: { "is-active": active }
       }, [Icons[item.icon](), h("span.nav-label", item.label)]);
@@ -43,11 +44,14 @@
           h("span.brand-name", "xID")
         ]),
         h("div.sidebar-wallet", [Wallet.renderButton()]),
-        h("nav.sidebar-nav", NAV.map(function (item) { return self.renderNav(item); })),
+        h("nav.sidebar-nav", { "aria-label": "Main navigation" }, NAV.map(function (item) { return self.renderNav(item); })),
         h("div.sidebar-foot", [
-          h("a.nav-link", {
-            href: "#Collapse",
+          h("p.sidebar-network", [h("span.network-dot"), "EpixChain", h("span.dim.small", "Permanent names")]),
+          h("button.nav-link", {
+            type: "button",
             title: this.collapsed ? "Expand sidebar" : "Collapse sidebar",
+            "aria-label": this.collapsed ? "Expand sidebar" : "Collapse sidebar",
+            "aria-expanded": this.collapsed ? "false" : "true",
             onclick: this.handleToggle
           }, [Icons.collapse(this.collapsed), h("span.nav-label", "Collapse")])
         ])
@@ -58,7 +62,7 @@
       var chrome = Page.chrome;
       return h("div.layout", {
         key: "layout",
-        classes: { collapsed: chrome && this.collapsed, "no-chrome": !chrome }
+        classes: { collapsed: chrome && this.collapsed, "no-chrome": !chrome, "is-embedded": Page.isEmbedded }
       }, [
         chrome ? this.renderSidebar() : null,
         h("div.content", [h("main.main", { classes: { wizard: !chrome } }, [content])])

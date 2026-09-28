@@ -66,18 +66,25 @@
     onConnected: async function (result) {
       var self = this;
       this.raw = result.provider;
-      this.browserProvider = new ethers.BrowserProvider(this.raw);
+      this.browserProvider = new ethers.BrowserProvider(this.raw, "any");
       this.address = ethers.getAddress(result.address);
       this.bech32 = Bech32.evmToBech32(this.address);
       this.walletName = result.walletName || "";
       this.walletIcon = result.walletIcon || null;
       if (this.raw && this.raw.on && !this.raw._xidHooked) {
+        var hookedProvider = this.raw;
         this.raw._xidHooked = true;
         this.raw.on("accountsChanged", function (accounts) {
+          if (self.raw !== hookedProvider) return;
           if (!accounts || !accounts.length) { self.disconnect(); return; }
           self.onConnected({ provider: self.raw, address: accounts[0], walletName: self.walletName, walletIcon: self.walletIcon });
         });
-        this.raw.on("chainChanged", function () { self.checkChain(); });
+        this.raw.on("chainChanged", function () {
+          if (self.raw !== hookedProvider) return;
+          self.browserProvider = new ethers.BrowserProvider(self.raw, "any");
+          self.checkChain();
+          self.loadBalance();
+        });
       }
       await this.checkChain();
       this.loadBalance();
@@ -102,8 +109,8 @@
     checkChain: async function () {
       if (!this.browserProvider) return;
       try {
-        var net = await this.browserProvider.getNetwork();
-        this.chainOk = Number(net.chainId) === Chain.ID;
+        var id = await this.raw.request({ method: "eth_chainId" });
+        this.chainOk = Number(id) === Chain.ID;
       } catch (e) {
         this.chainOk = false;
       }
@@ -167,27 +174,28 @@
       opts = opts || {};
       if (!this.isConnected()) {
         return h("div.wallet-wrap", { key: "wallet" }, [
-          h("a.btn.btn-primary.btn-block", {
-            href: "#Connect",
+          h("button.btn.btn-primary.btn-block", {
+            type: "button",
             onclick: this.handleConnectClick,
             title: "Connect Wallet",
-            classes: { disabled: this.connecting }
+            disabled: this.connecting
           }, [Icons.wallet(), h("span.btn-label", this.connecting ? "Connecting..." : "Connect Wallet")]),
           this.connectError ? h("div.msg.msg-err.wallet-error", [this.connectError]) : null
         ]);
       }
       if (!this.chainOk) {
         return h("div.wallet-wrap", { key: "wallet" }, [
-          h("a.btn.btn-warn.btn-block", { href: "#Switch", onclick: this.handleSwitchClick, title: "Switch to Epix" }, [
+          h("button.btn.btn-warn.btn-block", { type: "button", onclick: this.handleSwitchClick, title: "Switch to Epix" }, [
             Icons.warning(), h("span.btn-label", "Switch to Epix")
           ])
         ]);
       }
       return h("div.wallet-wrap", { key: "wallet" }, [
-        h("a.wallet-chip", {
-          href: "#Account",
+        h("button.wallet-chip", {
+          type: "button",
           onclick: this.handleMenuClick,
           title: this.address,
+          "aria-expanded": this.menuOpen ? "true" : "false",
           classes: { "is-open": this.menuOpen }
         }, [
           this.walletIcon ? h("img.wallet-icon", { src: this.walletIcon, alt: "" }) : h("span.wallet-dot"),
@@ -201,8 +209,8 @@
           h("div.wallet-menu-row", [h("span.overline", "Cosmos"), h("span.mono.small", this.bech32)]),
           this.walletName ? h("div.wallet-menu-row", [h("span.overline", "Wallet"), h("span.small", this.walletName)]) : null,
           h("div.wallet-menu-actions", [
-            h("a.btn.btn-ghost.btn-sm", { href: "#Copy", onclick: this.handleCopyClick }, "Copy address"),
-            h("a.btn.btn-ghost.btn-sm", { href: "#Disconnect", onclick: this.handleDisconnectClick }, "Disconnect")
+            h("button.btn.btn-ghost.btn-sm", { type: "button", onclick: this.handleCopyClick }, "Copy address"),
+            h("button.btn.btn-ghost.btn-sm", { type: "button", onclick: this.handleDisconnectClick }, "Disconnect")
           ])
         ]) : null
       ]);

@@ -29,19 +29,26 @@ Address: `epix1xauthduuyn63k6kj54jzgp4l8nnjlhrsyaku8c`
 
 ### Search and resolution
 
-- **Name search**: debounced lookup with owner and fee
+- **Name search**: accepts a name or full `name.epix`, with owner and fee
 - **Forward resolve**: name to owner (EVM and bech32), avatar and bio
-- **Reverse resolve**: every name owned by a `0x...` or `epix1...` address
+- **Reverse resolve**: every name owned by a `0x...` or `epix1...` address,
+  following the chain's pagination cursor and showing ten results per page
 - **Identity reverse lookup**: the name linked to an EpixNet identity address
 
 ### Profiles
 
 - Avatar URL and bio per name, stored on-chain through the xID precompile
 
-### DNS records
+### Xite and other records
 
-- A, AAAA, NS, CNAME, MX, TXT, SRV and the EPIXNET record type (65280)
-- TTL per record, add and delete through transactions
+- **EpixNet xite** is the first and default record type (65280). A setup guide
+  explains how to point a name to a published xite. Paste its address or full
+  URL to preview the destination; only the xite address is stored on-chain.
+- A, AAAA, NS, CNAME, MX, TXT and SRV include descriptions and examples.
+  These are on-chain settings. This app does not provide public DNS hosting;
+  a service must support reading xID records to use them.
+- One value per record type, with edit, replace and delete actions.
+- Optional TTL uses the chain default at `0`, or 60 to 604800 seconds.
 
 ### Linked identities
 
@@ -50,13 +57,20 @@ Address: `epix1xauthduuyn63k6kj54jzgp4l8nnjlhrsyaku8c`
 - The content root is computed from the active identities
 - The node sends users here with `?linkIdentity=<address>&returnTo=/<xite>/`
   to link the identity it just minted. The page shows a three-step wizard
-  (connect wallet, pick or register a name, link), polls the node until the
-  identity resolves and then navigates back.
+  (connect wallet, choose or register a name, link and return). EpixTalk and
+  EpixPost are identified by name, and registration keeps the return context.
+- A primary name is preselected but requires confirmation. The wizard checks
+  the exact active identity on-chain and the local certificate before returning.
+  An incomplete confirmation offers retry; a pre-existing local certificate
+  offers a manual return because it cannot prove the originating xite's selection.
 
 ### Prices and stats
 
 - Price tiers for every TLD and a fee calculator
-- Total names, total fees burned and a per-TLD breakdown
+- Registered names, total fees burned, lifetime average burn per name and active
+  TLDs, with a per-TLD distribution and last successful refresh time
+- Refresh failures preserve the last successful snapshot. Totals come from the
+  chain's counters; there is no historical activity feed or estimated growth.
 
 ## Wallets
 
@@ -94,6 +108,19 @@ There is no build step. Add the folder as an owned xite on a node (or copy the
 files into the xite's data directory) and reload. The wrapper supplies the
 chain endpoints through `serverInfo`; a copy opened outside the wrapper falls
 back to the public endpoints after two seconds.
+
+Run the regression suite with Node.js 18 or later. It uses built-in test tools
+and the vendored libraries, with mocked network and wallet interactions:
+
+```sh
+node --test tests/*.test.cjs
+```
+
+The suite covers lookups and pagination, registration and return-flow recovery,
+record validation, transaction errors, stale account reads, routing and stats.
+Local tests do not submit transactions. For an end-to-end release check, use an
+owned test name and an EpixNet node to confirm wallet signing, certificate
+selection and return navigation from EpixTalk or EpixPost.
 
 Signing needs the owner key, which is not in this repository:
 

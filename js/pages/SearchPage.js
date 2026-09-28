@@ -1,383 +1,347 @@
-// Search: a debounced name lookup, plus the three advanced lookups
-// (forward resolve, reverse resolve by owner address, identity reverse lookup).
+// Search by name, wallet owner, or linked EpixNet identity.
 (function () {
-  // Stable handler: maquette forbids a new function per render.
   function hideBroken(e) { e.target.style.display = "none"; }
+  function errorMessage(error, fallback) {
+    return (window.TxErrors && TxErrors.extract(error)) || fallback;
+  }
+  function retry(error, handler) {
+    return h("div.msg.msg-err.stack-sm", { key: "error", role: "alert" }, [
+      h("p", error), h("button.btn.btn-secondary", { type: "button", onclick: handler }, "Try again")
+    ]);
+  }
 
-  class NameSearch {
+  class NameLookup {
     constructor() {
       this.input = "";
-      this.name = "";
-      this.owner = null;
-      this.isAvailable = false;
-      this.isLoading = false;
-      this.fee = null;
-      this.timer = null;
+      this.loading = false;
+      this.error = "";
+      this.validation = "";
+      this.result = null;
       this.seq = 0;
+      this.timer = null;
       this.handleInput = this.handleInput.bind(this);
+      this.handleKey = this.handleKey.bind(this);
+      this.lookup = this.lookup.bind(this);
     }
 
     handleInput(e) {
-      var self = this;
-      this.input = e.target.value.toLowerCase().slice(0, 64);
+      this.input = e.target.value;
+      ++this.seq;
       if (this.timer) clearTimeout(this.timer);
-      this.timer = setTimeout(function () { self.lookup(); }, 300);
+      this.result = null;
+      this.error = "";
+      this.loading = false;
+      var parsed = Text.nameInput(this.input);
+      this.validation = this.input.trim() ? parsed.error : "";
+      if (parsed.valid) this.timer = setTimeout(this.lookup, 300);
       Page.render();
     }
 
-    lookup() {
-      var self = this;
-      this.name = this.input;
+    handleKey(e) {
+      if (e.key === "Enter") { e.preventDefault(); this.lookup(); }
+    }
+
+    async lookup() {
+      if (this.timer) clearTimeout(this.timer);
+      var parsed = Text.nameInput(this.input);
       var seq = ++this.seq;
-      if (!this.name) { this.owner = null; this.isLoading = false; Page.render(); return; }
-      this.isLoading = true;
+      this.validation = parsed.error;
+      this.error = "";
+      this.result = null;
+      this.loading = parsed.valid;
       Page.render();
-      Promise.all([
-        XidContract.read("resolve", [this.name, Chain.DEFAULT_TLD]),
-        XidContract.read("getRegistrationFee", [this.name, Chain.DEFAULT_TLD])
-      ]).then(function (results) {
-        if (seq !== self.seq) return;
-        self.owner = String(results[0]);
-        self.isAvailable = self.owner === XidContract.ZERO;
-        self.fee = results[1];
-        self.isLoading = false;
-        Page.render();
-      }).catch(function () {
-        if (seq !== self.seq) return;
-        self.owner = null;
-        self.isLoading = false;
-        Page.render();
-      });
-    }
-
-    render() {
-      var tld = Chain.DEFAULT_TLD;
-      var hasResult = this.name.length > 0 && !this.isLoading && this.owner !== null;
-      var registered = hasResult && !this.isAvailable;
-      return h("div.card", { key: "name-search" }, [
-        h("label.field.field-lg", { for: "search-name" }, "Search for a name"),
-        h("div.input-row", [
-          h("input.input", { id: "search-name", type: "text", value: this.input, placeholder: "Search names...", maxlength: "64", oninput: this.handleInput, autocomplete: "off" }),
-          h("span.suffix-chip", "." + tld)
-        ]),
-        h("div", { style: "min-height:24px;margin-top:12px" }, [
-          this.isLoading && this.name ? h("p.dim", "Searching...") : null
-        ]),
-        registered ? h("div.subcard.row-between", [
-          h("div", [
-            h("p", { style: "font-weight:600" }, [this.name, h("span.dim", "." + tld)]),
-            h("p.mid", { style: "margin-top:4px" }, ["Owner: ", h("span.mono", Text.truncateAddress(this.owner))])
-          ]),
-          h("a.btn.btn-primary", { href: Page.nameUrl(tld, this.name), onclick: Page.handleLinkClick }, "View Details")
-        ]) : null,
-        hasResult && this.isAvailable ? h("div.subcard.row-between", [
-          h("p.mid", [
-            h("span", { style: "font-weight:600;color:var(--epix-text)" }, this.name + "." + tld),
-            " is not registered.",
-            this.fee !== null ? h("span.dim", " Fee: " + Format.ether(this.fee) + " EPIX") : null
-          ]),
-          h("a.btn.btn-soft-ok", { href: "?", onclick: Page.handleLinkClick }, "Register It")
-        ]) : null
-      ]);
-    }
-  }
-
-  class ForwardResolve {
-    constructor() {
-      this.input = "";
-      this.query = "";
-      this.owner = null;
-      this.isAvailable = false;
-      this.isLoading = false;
-      this.error = null;
-      this.fee = null;
-      this.avatar = "";
-      this.bio = "";
-      this.handleInput = this.handleInput.bind(this);
-      this.handleKey = this.handleKey.bind(this);
-      this.handleResolve = this.handleResolve.bind(this);
-    }
-
-    handleInput(e) { this.input = e.target.value.toLowerCase(); Page.render(); }
-    handleKey(e) { if (e.key === "Enter") this.handleResolve(); }
-
-    handleResolve() {
-      var self = this;
-      this.query = this.input;
-      this.error = null;
-      if (!this.query) { Page.render(); return false; }
-      this.isLoading = true;
+      if (!parsed.valid) return;
+      try {
+        var values = await Promise.all([
+          XidContract.read("resolve", [parsed.name, parsed.tld]),
+          XidContract.read("getRegistrationFee", [parsed.name, parsed.tld]).then(function (fee) { return { fee: fee }; }, function () { return { error: true }; }),
+          XidContract.read("getProfile", [parsed.name, parsed.tld]).then(function (profile) { return { profile: profile }; }, function () { return { error: true }; })
+        ]);
+        if (seq !== this.seq) return;
+        var profile = values[2].profile || [];
+        this.result = {
+          name: parsed.name, tld: parsed.tld, owner: String(values[0]),
+          fee: values[1].fee, feeError: !!values[1].error,
+          avatar: String(profile[0] || ""), bio: String(profile[1] || ""), profileError: !!values[2].error
+        };
+      } catch (e) {
+        if (seq !== this.seq) return;
+        this.error = "Could not look up this name. " + errorMessage(e, "Check your connection and try again.");
+      }
+      this.loading = false;
       Page.render();
-      var tld = Chain.DEFAULT_TLD;
-      Promise.all([
-        XidContract.read("resolve", [this.query, tld]),
-        XidContract.read("getRegistrationFee", [this.query, tld]).catch(function () { return null; }),
-        XidContract.read("getProfile", [this.query, tld]).catch(function () { return ["", ""]; })
-      ]).then(function (results) {
-        self.owner = String(results[0]);
-        self.isAvailable = self.owner === XidContract.ZERO;
-        self.fee = results[1];
-        self.avatar = results[2] ? String(results[2][0] || "") : "";
-        self.bio = results[2] ? String(results[2][1] || "") : "";
-        self.isLoading = false;
-        Page.render();
-      }).catch(function (err) {
-        self.error = err;
-        self.isLoading = false;
-        Page.render();
-      });
-      return false;
     }
 
-    render() {
-      var tld = Chain.DEFAULT_TLD;
-      var hasResult = this.query.length > 0 && !this.isLoading;
-      var body = null;
-      if (this.isLoading && this.query) {
-        body = h("p.dim", { style: "margin-top:16px" }, "Resolving...");
-      } else if (hasResult && this.error) {
-        body = h("p.text-err", { style: "margin-top:16px" }, TxErrors.extract(this.error));
-      } else if (hasResult && !this.isAvailable && this.owner) {
-        var rows = [
-          h("div.kv", [h("span.k", "Name"), h("span.v", { style: "font-weight:600" }, this.query + "." + tld)]),
-          h("div.kv", [h("span.k", "Owner (EVM)"), h("span.v.mono", this.owner)]),
-          h("div.kv", [h("span.k", "Owner (Cosmos)"), h("span.v.mono", Bech32.evmToBech32(this.owner))])
-        ];
-        if (this.avatar) {
-          rows.push(h("div.kv", [h("span.k", "Avatar"), h("img.avatar.avatar-sm", { src: this.avatar, alt: "avatar", referrerpolicy: "no-referrer", loading: "lazy", onerror: hideBroken })]));
-        }
-        if (this.bio) rows.push(h("div.kv", [h("span.k", "Bio"), h("span.v", this.bio)]));
-        body = h("div.subcard", { style: "margin-top:16px" }, rows);
-      } else if (hasResult && this.isAvailable) {
-        body = h("div.subcard", { style: "margin-top:16px" }, [
-          h("p.mid", [
-            h("span", { style: "font-weight:600;color:var(--epix-text)" }, this.query + "." + tld),
-            " is not registered.",
-            this.fee !== null ? h("span.dim", " Registration fee: " + Format.ether(this.fee) + " EPIX") : null
-          ])
+    renderResult() {
+      var r = this.result;
+      if (!r) return null;
+      var fullName = r.name + "." + r.tld;
+      if (r.owner === XidContract.ZERO) {
+        return h("div.lookup-result.stack-sm", { key: "available" }, [
+          h("div.row-between", [h("h2.result-title", fullName), h("span.pill.pill-ok", "Available")]),
+          h("p.mid", "This name is ready to register. It is yours permanently, with no renewal fees."),
+          r.fee !== undefined ? h("div.kv", [h("span.k", "One-time fee"), h("span.v", Format.ether(r.fee) + " EPIX")]) : h("p.text-warn", "The fee could not be loaded. It will be checked again before registration."),
+          h("a.btn.btn-primary", { href: "?Register&name=" + encodeURIComponent(r.name), onclick: Page.handleLinkClick }, "Register " + fullName)
         ]);
       }
-      return h("div.card", { key: "forward" }, [
-        h("h2", "Forward Resolve"),
-        h("p.mid", { style: "margin:4px 0 16px" }, "Look up the owner of a registered name."),
-        h("div.input-row.wrap-sm", [
-          h("input.input", { type: "text", value: this.input, placeholder: "name", oninput: this.handleInput, onkeydown: this.handleKey, autocomplete: "off" }),
-          h("span.suffix-chip", "." + tld),
-          h("a.btn.btn-primary", { href: "#Resolve", onclick: this.handleResolve }, "Resolve")
-        ]),
-        body
-      ]);
-    }
-  }
-
-  class ReverseResolve {
-    constructor() {
-      this.input = "";
-      this.displayAddr = "";
-      this.primary = null;
-      this.names = [];
-      this.loading = false;
-      this.error = "";
-      this.searched = false;
-      this.showAll = false;
-      this.handleInput = this.handleInput.bind(this);
-      this.handleKey = this.handleKey.bind(this);
-      this.handleLookup = this.handleLookup.bind(this);
-      this.handleToggle = this.handleToggle.bind(this);
-    }
-
-    valid(v) { return (typeof ethers !== "undefined" && ethers.isAddress(v)) || Bech32.looksLikeBech32(v); }
-    handleInput(e) { this.input = e.target.value; Page.render(); }
-    handleKey(e) { if (e.key === "Enter") this.handleLookup(); }
-    handleToggle() { this.showAll = !this.showAll; Page.render(); return false; }
-
-    async handleLookup() {
-      var trimmed = this.input.trim();
-      if (!this.valid(trimmed)) return false;
-      this.displayAddr = trimmed;
-      this.primary = null;
-      this.names = [];
-      this.error = "";
-      this.searched = true;
-      this.loading = true;
-      this.showAll = false;
-      Page.render();
-      try {
-        var b32 = ethers.isAddress(trimmed) ? Bech32.evmToBech32(trimmed) : trimmed;
-        var results = await Promise.all([Rest.reverse(b32), Rest.names(b32, { limit: 50 })]);
-        var primaryRes = results[0], namesRes = results[1];
-        if (primaryRes.ok && primaryRes.data && primaryRes.data.primary_name && primaryRes.data.primary_name.name) {
-          this.primary = primaryRes.data.primary_name;
-        }
-        if (!namesRes.ok) throw new Error("Failed to fetch names");
-        this.names = (namesRes.data && namesRes.data.names) || [];
-      } catch (e) {
-        this.error = (e && e.message) || "Failed to fetch";
-      }
-      this.loading = false;
-      Page.render();
-      return false;
-    }
-
-    renderName(entry, primary) {
-      return h("a.subcard-sm.row-between", {
-        key: entry.tld + "/" + entry.name,
-        href: Page.nameUrl(entry.tld, entry.name),
-        onclick: Page.handleLinkClick,
-        style: primary ? "display:flex;background:var(--epix-accent-soft);border:1px solid var(--epix-border);color:inherit" : "display:flex;color:inherit;margin-top:4px"
-      }, [
-        h("span.row-gap", [h("span", { style: "font-weight:500" }, entry.name + "." + entry.tld), primary ? h("span.pill.pill-accent", "Primary") : null]),
-        h("span.mid", "View")
+      return h("div.lookup-result.stack-sm", { key: "registered" }, [
+        h("div.row-between", [h("h2.result-title", fullName), h("span.pill.pill-accent", "Registered")]),
+        r.avatar ? h("img.avatar", { src: r.avatar, alt: fullName + " profile", referrerpolicy: "no-referrer", loading: "lazy", onerror: hideBroken }) : null,
+        r.bio ? h("p.mid", r.bio) : null,
+        h("div.kv", [h("span.k", "Wallet (EVM)"), h("span.v.mono", r.owner)]),
+        h("div.kv", [h("span.k", "Wallet (Epix)"), h("span.v.mono", Bech32.evmToBech32(r.owner))]),
+        r.profileError ? h("div.msg.msg-warn", ["Owner found, but the profile could not be loaded. ", h("button.btn.btn-secondary", { type: "button", onclick: this.lookup }, "Retry profile")]) : null,
+        h("a.btn.btn-primary", { href: Page.nameUrl(r.tld, r.name), onclick: Page.handleLinkClick }, "View name details")
       ]);
     }
 
     render() {
-      var self = this;
-      var trimmed = this.input.trim();
-      var others = this.primary
-        ? this.names.filter(function (n) { return !(n.name === self.primary.name && n.tld === self.primary.tld); })
-        : this.names;
-      var body = [];
-      if (trimmed && !this.valid(trimmed)) body.push(h("p.text-err.small", { style: "margin-top:8px" }, "Invalid address (enter a 0x... EVM address or epix1... bech32 address)"));
-      if (this.loading) body.push(h("p.dim", { style: "margin-top:16px" }, "Resolving..."));
-      if (this.error) body.push(h("p.text-err", { style: "margin-top:16px" }, this.error));
-      if (this.searched && !this.loading && !this.error && this.names.length > 0) {
-        body.push(h("div", { style: "margin-top:16px" }, [
-          h("div.row-between.mid.small", { style: "margin-bottom:8px" }, [
-            h("span", ["Address: ", h("span.mono", Text.truncateAddress(this.displayAddr))]),
-            h("span", Text.plural(this.names.length, "name"))
-          ]),
-          this.primary ? this.renderName(this.primary, true) : null,
-          others.length ? h("div", { style: "margin-top:8px" }, [
-            h("button.disclosure", { onclick: this.handleToggle, classes: { "is-open": this.showAll } }, [
-              h("span.disclosure-tri", "▶"), "Show all " + this.names.length + " names"
-            ]),
-            this.showAll ? h("div", { style: "margin-top:8px" }, others.map(function (n) { return self.renderName(n, false); })) : null
-          ]) : null
-        ]));
-      }
-      if (this.searched && !this.loading && !this.error && this.names.length === 0) {
-        body.push(h("div.subcard", { style: "margin-top:16px" }, [
-          h("p.mid", ["No names owned by ", h("span.mono", Text.truncateAddress(this.displayAddr)), ". If this is an EpixNet identity address, try the Identity Reverse Lookup below."])
-        ]));
-      }
-      return h("div.card", { key: "reverse" }, [
-        h("h2", "Reverse Resolve"),
-        h("p.mid", { style: "margin:4px 0 16px" }, "Look up all names owned by an address (0x... or epix1...)."),
+      return h("div.card.stack-sm", { key: "name-lookup" }, [
+        h("div", [h("h2", "Find a name"), h("p.mid", "Check availability or find the wallet and profile behind a name.")]),
+        h("label.field", { for: "lookup-name" }, "Name"),
         h("div.input-row.wrap-sm", [
-          h("input.input.input-mono", { type: "text", value: this.input, placeholder: "0x... or epix1...", oninput: this.handleInput, onkeydown: this.handleKey, autocomplete: "off" }),
-          h("a.btn.btn-primary", { href: "#Lookup", onclick: this.handleLookup, classes: { disabled: !this.valid(trimmed) } }, "Lookup")
+          h("input.input", { id: "lookup-name", type: "text", value: this.input, placeholder: "yourname or yourname.epix", oninput: this.handleInput, onkeydown: this.handleKey, autocomplete: "off", spellcheck: false, "aria-describedby": "lookup-name-help", "aria-invalid": this.validation ? "true" : "false" }),
+          h("button.btn.btn-primary", { type: "button", onclick: this.lookup, disabled: this.loading || !this.input.trim() }, "Search")
+        ]),
+        h("p.lookup-hint.small.dim", { id: "lookup-name-help" }, this.validation || "1–64 letters, numbers, or internal hyphens. You can paste a full .epix name."),
+        h("div.stack-sm", { "aria-live": "polite", "aria-busy": this.loading ? "true" : "false" }, [
+          this.loading ? h("p.mid", { key: "loading", role: "status" }, "Looking up " + Text.normalizeName(this.input) + ".epix...") : null,
+          this.error ? retry(this.error, this.lookup) : null,
+          this.renderResult(),
+          !this.input.trim() ? h("div.lookup-empty", { key: "empty" }, "Enter a name to get started. No wallet connection needed.") : null
         ])
-      ].concat(body));
+      ]);
     }
   }
 
-  class IdentityReverseLookup {
+  class WalletLookup {
     constructor() {
       this.input = "";
+      this.address = "";
+      this.names = [];
+      this.primary = null;
+      this.total = 0;
+      this.loading = false;
+      this.searched = false;
+      this.error = "";
+      this.warning = "";
+      this.seq = 0;
+      this.page = 0;
+      this.size = 10;
+      this.handleInput = this.handleInput.bind(this);
+      this.handleKey = this.handleKey.bind(this);
+      this.lookup = this.lookup.bind(this);
+      this.previous = this.previous.bind(this);
+      this.next = this.next.bind(this);
+    }
+
+    handleInput(e) {
+      this.input = e.target.value;
+      ++this.seq;
+      this.loading = false;
+      this.searched = false;
+      this.names = [];
+      this.error = "";
+      this.warning = "";
+      Page.render();
+    }
+    handleKey(e) { if (e.key === "Enter") { e.preventDefault(); this.lookup(); } }
+    previous() { if (this.page > 0) this.page--; Page.render(); }
+    next() { if ((this.page + 1) * this.size < this.names.length) this.page++; Page.render(); }
+
+    async lookup() {
+      var address = this.input.trim();
+      var seq = ++this.seq;
+      this.error = "";
+      this.warning = "";
+      this.names = [];
+      this.primary = null;
+      this.searched = false;
+      this.page = 0;
+      this.loading = false;
+      if (!ethers.isAddress(address) && !Bech32.isBech32Address(address)) {
+        this.error = "Enter a valid 0x wallet address or an epix1 address with a valid checksum.";
+        Page.render();
+        return;
+      }
+      this.address = address;
+      this.loading = true;
+      Page.render();
+      try {
+        var b32 = ethers.isAddress(address) ? Bech32.evmToBech32(address) : address;
+        var results = await Promise.all([
+          Rest.namesAll(b32),
+          Rest.reverse(b32).catch(function () { return { ok: false }; })
+        ]);
+        if (seq !== this.seq) return;
+        var primaryResponse = results[1];
+        this.primary = primaryResponse.ok && primaryResponse.data ? primaryResponse.data.primary_name : null;
+        if (!primaryResponse.ok && primaryResponse.status !== 404) this.warning = "Names loaded, but the primary name could not be checked.";
+        this.names = results[0].names.slice();
+        var primary = this.primary;
+        if (primary) this.names.sort(function (a, b) {
+          var aPrimary = a.name === primary.name && a.tld === primary.tld;
+          var bPrimary = b.name === primary.name && b.tld === primary.tld;
+          return Number(bPrimary) - Number(aPrimary);
+        });
+        this.total = results[0].total;
+        this.searched = true;
+      } catch (e) {
+        if (seq !== this.seq) return;
+        this.error = "Could not load this wallet's names. " + errorMessage(e, "Please try again.");
+      }
+      this.loading = false;
+      Page.render();
+    }
+
+    render() {
+      var self = this;
+      var start = this.page * this.size;
+      return h("div.card.stack-sm", { key: "wallet-lookup" }, [
+        h("div", [h("h2", "Find a wallet's names"), h("p.mid", "See every name owned by an EVM or Epix wallet.")]),
+        h("label.field", { for: "lookup-wallet" }, "Wallet address"),
+        h("div.input-row.wrap-sm", [
+          h("input.input.input-mono", { id: "lookup-wallet", value: this.input, placeholder: "0x... or epix1...", oninput: this.handleInput, onkeydown: this.handleKey, autocomplete: "off", spellcheck: false, "aria-describedby": "lookup-wallet-help" }),
+          h("button.btn.btn-primary", { type: "button", onclick: this.lookup, disabled: this.loading || !this.input.trim() }, "Look up wallet")
+        ]),
+        h("p.lookup-hint.small.dim", { id: "lookup-wallet-help" }, "Use the wallet that owns the name. To find a linked EpixNet identity, choose Identity above."),
+        h("div.stack-sm", { "aria-live": "polite", "aria-busy": this.loading ? "true" : "false" }, [
+          this.loading ? h("p.mid", { key: "loading", role: "status" }, "Loading all names...") : null,
+          this.error ? retry(this.error, this.lookup) : null,
+          this.warning ? h("p.text-warn", { key: "warning" }, this.warning) : null,
+          this.searched ? h("div.lookup-result.stack-sm", { key: "result" }, [
+            h("div.row-between", [h("h2.result-title", Text.plural(this.total, "name")), h("span.mono.small.mid", Text.truncateAddress(this.address))]),
+            this.names.length ? h("div.stack-sm", { key: "names" }, this.names.slice(start, start + this.size).map(function (entry) {
+              var isPrimary = self.primary && entry.name === self.primary.name && entry.tld === self.primary.tld;
+              return h("a.subcard-sm.row-between", { key: entry.tld + "/" + entry.name, href: Page.nameUrl(entry.tld, entry.name), onclick: Page.handleLinkClick }, [
+                h("span.row-gap", [h("span", entry.name + "." + entry.tld), isPrimary ? h("span.pill.pill-accent", "Primary") : null]), h("span.small", "View details")
+              ]);
+            })) : h("p.mid", { key: "none" }, "This wallet does not own any names. A linked EpixNet address can be checked in Identity lookup."),
+            this.names.length > this.size ? h("div.row-between", { key: "pagination" }, [
+              h("button.btn.btn-secondary", { type: "button", onclick: this.previous, disabled: this.page === 0 }, "Previous"),
+              h("span.small.mid", String(start + 1) + "–" + Math.min(start + this.size, this.names.length) + " of " + this.names.length),
+              h("button.btn.btn-secondary", { type: "button", onclick: this.next, disabled: start + this.size >= this.names.length }, "Next")
+            ]) : null
+          ]) : null
+        ])
+      ]);
+    }
+  }
+
+  class IdentityLookup {
+    constructor() {
+      this.input = "";
+      this.address = "";
       this.loading = false;
       this.error = "";
       this.searched = false;
       this.result = null;
+      this.seq = 0;
       this.handleInput = this.handleInput.bind(this);
       this.handleKey = this.handleKey.bind(this);
-      this.handleLookup = this.handleLookup.bind(this);
+      this.lookup = this.lookup.bind(this);
     }
-
-    handleInput(e) { this.input = e.target.value; Page.render(); }
-    handleKey(e) { if (e.key === "Enter") this.handleLookup(); }
-
-    async handleLookup() {
-      var trimmed = this.input.trim();
+    handleInput(e) {
+      this.input = e.target.value;
+      ++this.seq;
+      this.loading = false;
       this.error = "";
-      this.searched = true;
-      this.loading = true;
+      this.searched = false;
       this.result = null;
       Page.render();
+    }
+    handleKey(e) { if (e.key === "Enter") { e.preventDefault(); this.lookup(); } }
+
+    async lookup() {
+      var address = this.input.trim();
+      var seq = ++this.seq;
+      this.error = "";
+      this.searched = false;
+      this.result = null;
+      this.loading = false;
+      if (!Bech32.isBech32Address(address)) {
+        this.error = "Enter a valid epix1 identity address with a valid checksum.";
+        Page.render();
+        return;
+      }
+      this.address = address;
+      this.loading = true;
+      Page.render();
       try {
-        if (!Bech32.looksLikeBech32(trimmed)) {
-          this.error = "Enter a valid epix1... bech32 identity address";
-        } else {
-          var res = await Rest.reverseIdentity(trimmed);
-          if (!res.ok) throw new Error("Failed to fetch");
-          var data = res.data || {};
-          if (data.name_record && data.name_record.name) {
-            var peer = data.peer || {};
-            this.result = {
-              name: data.name_record.name,
-              tld: data.name_record.tld,
-              owner: data.name_record.owner,
-              active: peer.active === undefined || peer.active === null ? true : !!peer.active,
-              label: peer.label || "",
-              addedAt: parseInt(peer.added_at || "0", 10),
-              revokedAt: parseInt(peer.revoked_at || "0", 10)
-            };
-          }
+        var response = await Rest.reverseIdentity(address);
+        if (seq !== this.seq) return;
+        if (!response.ok) throw new Error("The identity service did not return a result.");
+        var data = response.data || {};
+        if (data.name_record && data.name_record.name) {
+          var identity = data.identity;
+          this.result = {
+            name: data.name_record.name, tld: data.name_record.tld, owner: data.name_record.owner,
+            active: identity && typeof identity.active === "boolean" ? identity.active : null,
+            label: identity ? identity.label || "" : "",
+            addedAt: identity ? String(identity.added_at || "0") : "0",
+            revokedAt: identity ? String(identity.revoked_at || "0") : "0"
+          };
         }
+        this.searched = true;
       } catch (e) {
-        this.error = (e && e.message) || "Failed to fetch";
+        if (seq !== this.seq) return;
+        this.error = "Could not look up this identity. " + errorMessage(e, "Please try again.");
       }
       this.loading = false;
       Page.render();
-      return false;
     }
 
     render() {
       var r = this.result;
-      var body = [];
-      if (this.loading) body.push(h("p.dim", { style: "margin-top:16px" }, "Resolving..."));
-      if (this.error) body.push(h("p.text-err", { style: "margin-top:16px" }, this.error));
-      if (this.searched && !this.loading && !this.error && r) {
-        var rows = [
-          h("div.kv", [h("span.k", "xID Name"), h("a.v.text-link", { href: Page.nameUrl(r.tld, r.name), onclick: Page.handleLinkClick, style: "font-weight:600" }, r.name + "." + r.tld)]),
-          h("div.kv", [h("span.k", "Owner"), h("span.v.mono", Text.truncateAddress(r.owner))])
-        ];
-        if (r.label) rows.push(h("div.kv", [h("span.k", "Identity Label"), h("span.v", r.label)]));
-        rows.push(h("div.kv", [h("span.k", "Status"), h("span.v", { classes: { "text-ok": r.active, "text-err": !r.active }, style: "font-weight:500" }, r.active ? "Active" : "Revoked (block " + r.revokedAt + ")")]));
-        if (r.addedAt > 0) rows.push(h("div.kv", [h("span.k", "Added At Block"), h("span.v.mono", String(r.addedAt))]));
-        body.push(h("div.subcard", { style: "margin-top:16px" }, rows));
-      }
-      if (this.searched && !this.loading && !this.error && !r) {
-        body.push(h("div.subcard", { style: "margin-top:16px" }, [h("p.mid", "No xID name linked to this identity address.")]));
-      }
-      return h("div.card", { key: "identity" }, [
-        h("h2", "Identity Reverse Lookup"),
-        h("p.mid", { style: "margin:4px 0 16px" }, "Look up the xID name linked to an EpixNet identity address (epix1...)."),
+      return h("div.card.stack-sm", { key: "identity-lookup" }, [
+        h("div", [h("h2", "Find a linked identity"), h("p.mid", "Look up the name linked to an EpixNet identity and check its status.")]),
+        h("label.field", { for: "lookup-identity" }, "EpixNet identity address"),
         h("div.input-row.wrap-sm", [
-          h("input.input.input-mono", { type: "text", value: this.input, placeholder: "epix1...", oninput: this.handleInput, onkeydown: this.handleKey, autocomplete: "off" }),
-          h("a.btn.btn-primary", { href: "#Lookup", onclick: this.handleLookup, classes: { disabled: !Bech32.looksLikeBech32(this.input.trim()) } }, "Lookup")
+          h("input.input.input-mono", { id: "lookup-identity", value: this.input, placeholder: "epix1...", oninput: this.handleInput, onkeydown: this.handleKey, autocomplete: "off", spellcheck: false }),
+          h("button.btn.btn-primary", { type: "button", onclick: this.lookup, disabled: this.loading || !this.input.trim() }, "Look up identity")
+        ]),
+        h("div.stack-sm", { "aria-live": "polite", "aria-busy": this.loading ? "true" : "false" }, [
+          this.loading ? h("p.mid", { key: "loading", role: "status" }, "Looking up identity...") : null,
+          this.error ? retry(this.error, this.lookup) : null,
+          this.searched && r ? h("div.lookup-result.stack-sm", { key: "result" }, [
+            h("div.row-between", [h("h2.result-title", r.name + "." + r.tld), h("span.pill", { classes: { "pill-ok": r.active === true, "pill-bad": r.active === false } }, r.active === true ? "Active" : r.active === false ? "Revoked" : "Status unavailable")]),
+            h("div.kv", [h("span.k", "Identity"), h("span.v.mono", this.address)]),
+            h("div.kv", [h("span.k", "Owner"), h("span.v.mono", r.owner)]),
+            r.label ? h("div.kv", { key: "label" }, [h("span.k", "Label"), h("span.v", r.label)]) : null,
+            r.addedAt !== "0" ? h("div.kv", { key: "added" }, [h("span.k", "Linked at block"), h("span.v.mono", r.addedAt)]) : null,
+            r.active === false && r.revokedAt !== "0" ? h("div.kv", { key: "revoked" }, [h("span.k", "Revoked at block"), h("span.v.mono", r.revokedAt)]) : null,
+            h("a.btn.btn-primary", { href: Page.nameUrl(r.tld, r.name), onclick: Page.handleLinkClick }, "View name details")
+          ]) : null,
+          this.searched && !r ? h("div.lookup-empty", { key: "empty" }, "No name is linked to this identity. If this is a wallet address, use Wallet lookup.") : null
         ])
-      ].concat(body));
+      ]);
     }
   }
 
   class SearchPage {
     constructor() {
-      this.showAdvanced = false;
-      this.name_search = new NameSearch();
-      this.forward = new ForwardResolve();
-      this.reverse = new ReverseResolve();
-      this.identity = new IdentityReverseLookup();
-      this.handleToggle = this.handleToggle.bind(this);
+      this.mode = "name";
+      this.name_search = new NameLookup();
+      this.reverse = new WalletLookup();
+      this.identity = new IdentityLookup();
+      this.selectName = this.selectName.bind(this);
+      this.selectWallet = this.selectWallet.bind(this);
+      this.selectIdentity = this.selectIdentity.bind(this);
     }
-
-    handleToggle() { this.showAdvanced = !this.showAdvanced; Page.render(); return false; }
-
+    selectName() { this.mode = "name"; Page.render(); }
+    selectWallet() { this.mode = "wallet"; Page.render(); }
+    selectIdentity() { this.mode = "identity"; Page.render(); }
     render() {
       return h("div.stack.SearchPage", { key: "search" }, [
-        h("div.page-head", [h("h1", "Search Names"), h("p", "Look up a name to see if it's registered.")]),
-        this.name_search.render(),
-        h("div", [
-          h("button.disclosure", { onclick: this.handleToggle, classes: { "is-open": this.showAdvanced } }, [
-            h("span.disclosure-tri", "▶"), "Advanced Lookup"
-          ]),
-          this.showAdvanced ? h("div.stack.disclosure-body", [
-            this.forward.render(), this.reverse.render(), this.identity.render()
-          ]) : null
-        ])
+        h("div.page-head", [h("h1", "Search names & identities"), h("p", "Explore names, wallet ownership, and linked EpixNet identities.")]),
+        h("div.lookup-tabs", { role: "group", "aria-label": "Lookup type" }, [
+          h("button.lookup-tab", { type: "button", onclick: this.selectName, classes: { "is-active": this.mode === "name" }, "aria-pressed": this.mode === "name" ? "true" : "false" }, "Name"),
+          h("button.lookup-tab", { type: "button", onclick: this.selectWallet, classes: { "is-active": this.mode === "wallet" }, "aria-pressed": this.mode === "wallet" ? "true" : "false" }, "Wallet"),
+          h("button.lookup-tab", { type: "button", onclick: this.selectIdentity, classes: { "is-active": this.mode === "identity" }, "aria-pressed": this.mode === "identity" ? "true" : "false" }, "Identity")
+        ]),
+        this.mode === "name" ? this.name_search.render() : this.mode === "wallet" ? this.reverse.render() : this.identity.render()
       ]);
     }
   }
-
   window.SearchPage = SearchPage;
 })();

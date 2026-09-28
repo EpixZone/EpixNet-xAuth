@@ -1,5 +1,28 @@
-// Number formatting that prints exactly what the old app printed.
+// Token and count formatting without converting chain integers to Number.
 (function () {
+  var EPIX_SCALE = 1000000000000000000n;
+
+  function integer(value) {
+    if (typeof value === "number" && !Number.isSafeInteger(value)) throw new Error("Unsafe integer");
+    if (!/^-?\d+$/.test(String(value))) throw new Error("Invalid integer");
+    return BigInt(value);
+  }
+
+  function epix(value, locale, fractionDigits) {
+    var amount = integer(value);
+    var negative = amount < 0n;
+    if (negative) amount = -amount;
+    if (fractionDigits !== undefined) {
+      if (!Number.isInteger(fractionDigits) || fractionDigits < 0 || fractionDigits > 18) throw new Error("Invalid precision");
+      var step = 10n ** BigInt(18 - fractionDigits);
+      amount = (amount + step / 2n) / step * step;
+    }
+    var whole = (amount / EPIX_SCALE).toLocaleString(locale);
+    var fraction = (amount % EPIX_SCALE).toString().padStart(18, "0").replace(/0+$/, "");
+    var decimal = new Intl.NumberFormat(locale).formatToParts(1.1).filter(function (p) { return p.type === "decimal"; })[0].value;
+    return (negative ? "-" : "") + whole + (fraction ? decimal + fraction : "");
+  }
+
   window.Format = {
     // A bigint fee as the old viem formatEther string ("100", not "100.0").
     ether: function (bi) {
@@ -8,13 +31,17 @@
     },
 
     // aepix string -> localized EPIX; the input on failure (Prices page).
-    epix: function (s) {
-      try { return Number(ethers.formatEther(BigInt(s))).toLocaleString(); } catch (e) { return s; }
+    epix: function (s, locale, fractionDigits) {
+      try { return epix(s, locale, fractionDigits); } catch (e) { return String(s); }
     },
 
-    // aepix string -> localized EPIX; "0" on failure (Stats page).
-    burned: function (s) {
-      try { return Number(ethers.formatEther(BigInt(s))).toLocaleString(); } catch (e) { return "0"; }
+    // Invalid data is unavailable, never a fabricated zero balance.
+    burned: function (s, locale, fractionDigits) {
+      try { return epix(s, locale, fractionDigits); } catch (e) { return "Unavailable"; }
+    },
+
+    integer: function (value, locale) {
+      return integer(value).toLocaleString(locale);
     },
 
     // Price tier rows: "1 character", "2-3 characters", "6+ characters".

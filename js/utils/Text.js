@@ -2,6 +2,27 @@
 // (`?Page/arg&key=value`), address truncation, and the returnTo guard.
 (function () {
   window.Text = {
+    // A pasted full .epix name and a bare label refer to the same name.
+    // Do not truncate: a shortened name could register a different identity.
+    normalizeName: function (value) {
+      var name = String(value || "").trim().toLowerCase();
+      var tld = (window.Chain && Chain.DEFAULT_TLD) || "epix";
+      var suffix = "." + tld;
+      return name.endsWith(suffix) ? name.slice(0, -suffix.length) : name;
+    },
+
+    nameInput: function (value) {
+      var name = this.normalizeName(value);
+      var tld = (window.Chain && Chain.DEFAULT_TLD) || "epix";
+      var error = "";
+      if (!name) error = "Enter a name.";
+      else if (name.length > 64) error = "Names can contain up to 64 characters.";
+      else if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(name)) {
+        error = "Use letters, numbers, and hyphens. A name cannot start or end with a hyphen.";
+      }
+      return { name: name, tld: tld, valid: !error, error: error };
+    },
+
     // "?Name/epix/foo&linkIdentity=epix1..." -> {url, urls, linkIdentity}
     queryParse: function (query) {
       var params = {};
@@ -42,7 +63,15 @@
     // Only a same-origin path (`/epix1...`, `/Config`) may be navigated to
     // after linking; a full URL in `returnTo` is ignored.
     safeReturnTo: function (v) {
-      return /^\/[^\/\\]/.test(v || "") ? v : "";
+      if (typeof v !== "string" || !/^\/(?!\/)/.test(v) || /[\u0000-\u001f\u007f\\]/.test(v)) return "";
+      // Browsers remove tabs/newlines and treat backslashes as slashes when
+      // navigating. Validate the parsed destination as well as its spelling.
+      try {
+        var base = "https://xid-return.invalid";
+        return new URL(v, base).origin === base ? v : "";
+      } catch (e) {
+        return "";
+      }
     },
 
     plural: function (n, word) {

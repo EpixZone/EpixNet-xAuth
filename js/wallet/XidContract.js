@@ -36,14 +36,14 @@
   ];
 
   var DNS_RECORD_TYPES = [
-    { type: 1, label: "A", placeholder: "93.184.216.34" },
-    { type: 2, label: "NS", placeholder: "ns1.example.com" },
-    { type: 5, label: "CNAME", placeholder: "alias.example.com" },
-    { type: 15, label: "MX", placeholder: "10 mail.example.com" },
-    { type: 16, label: "TXT", placeholder: "v=spf1 include:example.com ~all" },
-    { type: 28, label: "AAAA", placeholder: "2606:2800:220:1:248:1893:25c8:1946" },
-    { type: 33, label: "SRV", placeholder: "10 5 5060 sip.example.com" },
-    { type: 65280, label: "EPIXNET", placeholder: "epix1dashuu6pvsut7aw9dx44f543mv7xt9zlydsj9t" }
+    { type: 65280, label: "EPIXNET", title: "EpixNet xite (recommended)", field: "Xite address or URL", placeholder: "epix1... or your full EpixNet xite URL", help: "Point your name to a published xite. EpixNet uses this address when someone opens your name.", example: "Copy the epix1... xite address from its URL in EpixNet, or paste the full URL here." },
+    { type: 1, label: "A", title: "A · IPv4 address", field: "IPv4 address", placeholder: "93.184.216.34", help: "Store the IPv4 address of a web server.", example: "Example: 93.184.216.34" },
+    { type: 28, label: "AAAA", title: "AAAA · IPv6 address", field: "IPv6 address", placeholder: "2001:db8::1", help: "Store the IPv6 address of a web server.", example: "Example: 2001:db8::1" },
+    { type: 5, label: "CNAME", title: "CNAME · Hostname alias", field: "Target hostname", placeholder: "www.example.com", help: "Store another hostname as the target for this name.", example: "Enter a hostname, without https:// or a page path." },
+    { type: 16, label: "TXT", title: "TXT · Text or verification", field: "Text value", placeholder: "site-verification=your-code", help: "Store text such as a verification code or service policy.", example: "Paste the exact value your service provides. The service must support reading xID records." },
+    { type: 15, label: "MX", title: "MX · Mail server", field: "Priority and mail hostname", placeholder: "10 mail.example.com", help: "Store a mail server hostname with its delivery priority. Lower numbers have higher priority.", example: "Example: 10 mail.example.com. This does not create an email account or configure Epix Mail." },
+    { type: 2, label: "NS", title: "NS · Name server", field: "Name server hostname", placeholder: "ns1.example.com", help: "Store the hostname of a name server.", example: "Example: ns1.example.com. Saving this does not delegate the name in public DNS." },
+    { type: 33, label: "SRV", title: "SRV · Service endpoint", field: "Priority, weight, port, and hostname", placeholder: "10 5 5060 sip.example.com", help: "Store a service location with priority, weight, port, and hostname.", example: "Example: 10 5 5060 sip.example.com. Use values supplied by your service." }
   ];
 
   window.XidContract = {
@@ -52,6 +52,54 @@
     ABI: ABI,
     DNS_RECORD_TYPES: DNS_RECORD_TYPES,
     iface: null,
+
+    recordInfo: function (type) {
+      return DNS_RECORD_TYPES.find(function (r) { return r.type === Number(type); }) || DNS_RECORD_TYPES[0];
+    },
+
+    // Accept the address or a copied local/gateway URL, but store only the
+    // xite address that EpixNet's resolver expects in an EPIXNET record.
+    xiteAddress: function (input) {
+      var value = String(input || "").trim();
+      if (Bech32.isBech32Address(value)) return value;
+      try {
+        var url = new URL(value, "http://localhost");
+        if (!/^(https?|epix):$/.test(url.protocol)) return null;
+        // The native browser uses https://<address>.epix/; epix:// links
+        // and raw-address hosts also identify the xite in the hostname.
+        var host = url.hostname.toLowerCase();
+        var addressHost = host.endsWith(".epix") ? host.slice(0, -5) : host;
+        if (Bech32.isBech32Address(addressHost)) return addressHost;
+        // A native xite host must not be replaced by an address-shaped
+        // page path. Only ordinary HTTP gateways use the first path part.
+        if (url.protocol === "epix:" || host.endsWith(".epix") || (host.indexOf("epix1") === 0 && host.indexOf(".") === -1)) return null;
+        var part = decodeURIComponent(url.pathname).split("/").filter(Boolean)[0];
+        return Bech32.isBech32Address(part) ? part : null;
+      } catch (e) { return null; }
+    },
+
+    recordValue: function (type, input) {
+      var value = Number(type) === 16 ? String(input || "") : String(input || "").trim();
+      var error = "";
+      if (Number(type) === 65280) {
+        value = this.xiteAddress(value) || "";
+        if (!value) error = "Enter a valid epix1... xite address or paste its EpixNet URL.";
+      } else if (!value.trim()) error = "Enter a value for this record.";
+      else if (Number(type) === 1 && !/^(\d{1,3}\.){3}\d{1,3}$/.test(value)) error = "Enter four IPv4 numbers separated by dots, such as 93.184.216.34.";
+      else if (Number(type) === 1 && value.split(".").some(function (n) { return Number(n) > 255; })) error = "Each IPv4 number must be between 0 and 255.";
+      else if (Number(type) === 28) {
+        try { if (value.indexOf(":") === -1) throw new Error(); new URL("http://[" + value + "]/"); }
+        catch (e) { error = "Enter a valid IPv6 address, such as 2001:db8::1."; }
+      }
+      if (new TextEncoder().encode(value).length > 1024) error = "Record values can contain up to 1,024 bytes.";
+      return { value: value, error: error };
+    },
+
+    recordTtlError: function (value) {
+      var ttl = Number(value);
+      return !String(value).trim() || !Number.isInteger(ttl) || (ttl !== 0 && (ttl < 60 || ttl > 604800))
+        ? "Use 0 for the default, or 60 to 604800 seconds (7 days)." : "";
+    },
 
     interface: function () {
       if (!this.iface) this.iface = new ethers.Interface(ABI);
@@ -94,6 +142,9 @@
       await Chain.withRpc(function (provider) {
         return provider.call({ from: from, to: ADDRESS, data: data });
       });
+      if (!Wallet.address || Wallet.address.toLowerCase() !== String(from).toLowerCase()) {
+        throw new Error("Your wallet changed. Review the details and try again.");
+      }
       notify("pending");
       var signer = await Wallet.signer();
       var contract = new ethers.Contract(ADDRESS, ABI, signer);
