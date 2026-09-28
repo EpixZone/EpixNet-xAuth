@@ -128,8 +128,7 @@
       var tx = this.tx;
       var label = tx.status === "simulating" ? "Checking transaction..." : tx.isPending ? "Confirm in your wallet..." : tx.isConfirming ? "Waiting for confirmation..." : "Register " + (this.name ? this.name + ".epix" : "name");
       return h("div.stack.RegisterPage", { key: "register" }, [
-        h("div.page-head", [h("p.overline", "Your name on Epix"), h("h1", "Register your xID"), h("p", "One name for your wallet, profile, and EpixNet identities. Register once and keep it.")]),
-        h("div.registration-benefits", [h("span", "No renewals"), h("span", "Owned by your wallet"), h("span", "Transferable anytime")]),
+        h("div.page-head", [h("h1", "Register your name"), h("p", "Your .epix name. No renewals.")]),
         h("div.card.stack-sm", [
           h("label.field.field-lg", { for: "register-name" }, "Choose your name"),
           h("input.input", { id: "register-name", type: "text", value: this.input, placeholder: "yourname or yourname.epix", oninput: this.handleInput, onkeydown: this.handleKey, autocomplete: "off", spellcheck: false, disabled: tx.isBusy, "aria-describedby": "register-name-help", "aria-invalid": this.validation ? "true" : "false" }),
