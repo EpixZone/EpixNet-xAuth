@@ -572,3 +572,70 @@ button.btn-primary:disabled:hover { background: var(--epix-accent) }
 @media (max-width: 720px) {
  .sidebar-wallet .wallet-menu .btn { width: auto; height: auto; min-height: 36px; padding: 8px 12px; font-size: 13px }
 }
+
+/* Profile Markdown editor and rendered bio. */
+.profile-editor { width: 100%; min-width: 0 }
+.profile-editor-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px }
+.profile-editor-head .field { margin: 0; font-size: 14px; color: var(--epix-text) }
+.profile-editor-tabs { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid var(--epix-border); border-radius: var(--radius-md); background: var(--epix-surface-2) }
+.profile-editor-tabs .btn { min-height: 30px; border-color: transparent; background: transparent; color: var(--epix-text-mid); padding: 4px 12px }
+.profile-editor-tabs .btn:hover:not(:disabled) { background: var(--epix-surface); color: var(--epix-text) }
+.profile-editor-tabs .btn.is-active { background: var(--epix-surface); border-color: var(--epix-border-strong); color: var(--epix-link) }
+.profile-format-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 10px; padding: 7px; border: 1px solid var(--epix-border-strong); border-bottom: 0; border-radius: var(--radius-md) var(--radius-md) 0 0; background: var(--epix-surface-2) }
+.profile-format-button { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; min-height: 34px; padding: 6px 9px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--epix-text-mid); font: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; cursor: pointer }
+.profile-format-button:hover:not(:disabled) { background: var(--epix-surface); border-color: var(--epix-border-strong); color: var(--epix-text) }
+.profile-format-button:focus-visible, .profile-editor-tabs .btn:focus-visible { outline: 2px solid var(--epix-focus); outline-offset: 2px }
+.profile-format-button:disabled { opacity: .4; cursor: not-allowed }
+.profile-format-button svg { display: block; width: 16px; height: 16px }
+.profile-bio-input { display: block; width: 100%; max-width: 100%; min-width: 0; min-height: 160px; margin: 0; padding: 14px; resize: vertical; border: 1px solid var(--epix-border-strong); border-radius: 0 0 var(--radius-md) var(--radius-md); background: var(--epix-surface); color: var(--epix-text); font: 16px/1.6 var(--epix-font-mono); tab-size: 2 }
+.profile-bio-input::placeholder { color: var(--epix-text-low); opacity: 1 }
+.profile-bio-input:focus { outline: 2px solid var(--epix-focus); outline-offset: 2px; border-color: var(--epix-focus); box-shadow: none }
+.profile-bio-input[aria-invalid="true"] { border-color: var(--epix-danger) }
+.profile-bio-input:disabled { opacity: .6; cursor: not-allowed }
+.profile-preview { width: 100%; max-width: 100%; min-width: 0; min-height: 160px; margin-top: 10px; padding: 16px; border: 1px solid var(--epix-border-strong); border-radius: var(--radius-md); background: var(--epix-surface-2) }
+.profile-editor-footer { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; color: var(--epix-text-low); font-size: 12px; line-height: 1.5 }
+.profile-byte-count { margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums }
+.profile-byte-count.is-over-limit { padding: 2px 6px; border-radius: 4px; background: var(--epix-danger-soft); color: var(--epix-ink-danger); font-weight: 600 }
+.profile-link-form { display: flex; flex-direction: column; gap: 10px; min-width: 0; margin-top: 12px; padding: 14px; border: 1px solid var(--epix-border); border-radius: var(--radius-md); background: var(--epix-surface-2) }
+.profile-link-form .field { margin-bottom: 0 }
+.profile-link-form .input { min-width: 0; max-width: 100%; font-size: 16px }
+.profile-format-help { margin-top: 12px; color: var(--epix-text-mid); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere }
+.profile-format-help summary { width: fit-content; max-width: 100%; padding: 5px 0; color: var(--epix-link); cursor: pointer }
+.profile-format-help[open] summary { margin-bottom: 8px }
+.profile-format-help ul, .profile-format-help ol { margin: 8px 0; padding-left: 1.5em }
+.profile-format-help li + li { margin-top: 4px }
+.profile-bio { flex: 1 1 220px; min-width: 0; max-width: 100% }
+.profile-markdown { min-width: 0; max-width: 100%; color: var(--epix-text-mid); font-size: 14px; line-height: 1.65; overflow-wrap: anywhere }
+.profile-markdown p { margin: 0 0 12px }
+.profile-markdown h3, .profile-markdown h4, .profile-markdown h5, .profile-markdown h6 { margin: 18px 0 8px; color: var(--epix-text); font-weight: 600; line-height: 1.35 }
+.profile-markdown h3 { font-size: 20px }
+.profile-markdown h4 { font-size: 18px }
+.profile-markdown h5 { font-size: 16px }
+.profile-markdown h6 { font-size: 14px }
+.profile-markdown strong { color: var(--epix-text); font-weight: 600 }
+.profile-markdown em { font-style: italic }
+.profile-markdown del { color: var(--epix-text-low) }
+.profile-markdown ul, .profile-markdown ol { margin: 0 0 12px; padding-left: 1.5em }
+.profile-markdown ul { list-style: disc }
+.profile-markdown ol { list-style: decimal }
+.profile-markdown li + li { margin-top: 4px }
+.profile-markdown li > p { margin-bottom: 6px }
+.profile-markdown li > ul, .profile-markdown li > ol { margin-top: 6px; margin-bottom: 6px }
+.profile-markdown blockquote { margin: 0 0 12px; padding: 10px 14px; border-left: 3px solid var(--epix-border-strong); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: var(--epix-surface-2) }
+.profile-markdown blockquote > :last-child { margin-bottom: 0 }
+.profile-markdown code, .profile-format-help code { padding: 1px 4px; border: 1px solid var(--epix-border); border-radius: 4px; background: var(--epix-surface-2); color: var(--epix-text); font-family: var(--epix-font-mono); font-size: .9em; overflow-wrap: anywhere }
+.profile-markdown pre { max-width: 100%; margin: 0 0 12px; padding: 12px; overflow-x: auto; border: 1px solid var(--epix-border); border-radius: var(--radius-md); background: var(--epix-surface-2); color: var(--epix-text); font: 13px/1.6 var(--epix-font-mono); white-space: pre; tab-size: 2 }
+.profile-markdown pre code { padding: 0; border: 0; background: transparent; font-size: inherit; white-space: inherit; overflow-wrap: normal; word-break: normal }
+.profile-markdown a { color: var(--epix-link); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em }
+.profile-markdown a:hover { text-decoration-thickness: 2px }
+.profile-markdown hr { margin: 18px 0; border: 0; border-top: 1px solid var(--epix-border) }
+.profile-markdown > :first-child { margin-top: 0 }
+.profile-markdown > :last-child { margin-bottom: 0 }
+@media (max-width: 480px) {
+ .profile-format-toolbar { padding: 6px; gap: 3px }
+ .profile-format-button { min-width: 36px; min-height: 36px; padding: 6px 8px }
+ .profile-bio-input, .profile-preview { padding: 12px }
+ .profile-editor-footer { align-items: flex-start }
+ .profile-byte-count { margin-left: 0 }
+ .profile-link-form { padding: 12px }
+}

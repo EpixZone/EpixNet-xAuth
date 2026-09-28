@@ -22,45 +22,178 @@
       this.editing = false;
       this.editAvatar = "";
       this.editBio = "";
+      this.previewing = false;
+      this.linkOpen = false;
+      this.linkUrl = "";
+      this.selection = { start: 0, end: 0 };
+      this.restoreSelection = false;
+      this.restoreEditFocus = false;
       this.tx = new TxState();
-      this.handleEdit = this.handleEdit.bind(this);
-      this.handleCancel = this.handleCancel.bind(this);
-      this.handleSave = this.handleSave.bind(this);
-      this.handleAvatarInput = this.handleAvatarInput.bind(this);
-      this.handleBioInput = this.handleBioInput.bind(this);
+      ["handleEdit", "handleEditNode", "handleCancel", "handleSave", "handleAvatarInput", "handleBioInput",
+        "handleBioSelection", "handleBioNode", "handleBioKey", "handleFormat", "handleToolMouseDown",
+        "handlePreview", "handleWrite", "handleLinkToggle", "handleLinkUrlInput", "handleLinkNode", "handleLinkKey", "handleInsertLink", "handleRetry"].forEach(function (key) {
+        this[key] = this[key].bind(this);
+      }, this);
     }
 
-    reset() { this.editing = false; this.tx.reset(); }
-    handleEdit() { this.editAvatar = this.page.avatar; this.editBio = this.page.bio; this.editing = true; Page.render(); return false; }
-    handleCancel() { if (!this.tx.isBusy) { this.editing = false; Page.render(); } return false; }
-    handleAvatarInput(e) { this.editAvatar = e.target.value; }
-    handleBioInput(e) { this.editBio = e.target.value; }
+    reset() { this.editing = this.previewing = this.linkOpen = this.restoreSelection = this.restoreEditFocus = false; this.linkUrl = ""; this.bioElement = null; this.tx.reset(); }
+    handleEdit() {
+      if (!this.page.isOwner() || this.page.profileLoading || this.page.profileError) return false;
+      this.editAvatar = this.page.avatar;
+      this.editBio = this.page.bio;
+      this.previewing = this.linkOpen = false;
+      this.linkUrl = "";
+      this.selection = { start: this.editBio.length, end: this.editBio.length };
+      this.editing = this.restoreSelection = true;
+      this.restoreEditFocus = false;
+      this.tx.reset();
+      Page.render();
+      return false;
+    }
+    handleEditNode(element) {
+      if (this.restoreEditFocus && !element.disabled) { this.restoreEditFocus = false; element.focus(); }
+    }
+    handleCancel() { if (!this.tx.isBusy) { this.editing = false; this.restoreEditFocus = true; Page.render(); } return false; }
+    handleRetry() { this.page.loadProfile(); return false; }
+    handleAvatarInput(e) { if (!this.tx.isBusy) { this.editAvatar = e.target.value; Page.render(); } }
+    handleBioInput(e) {
+      if (this.tx.isBusy) return;
+      this.editBio = e.target.value;
+      this.handleBioSelection(e);
+      Page.render();
+    }
+    handleBioSelection(e) {
+      if (!this.restoreSelection) this.selection = { start: e.target.selectionStart || 0, end: e.target.selectionEnd || 0 };
+    }
+    handleBioNode(element) {
+      this.bioElement = element;
+      if (this.restoreSelection && !this.tx.isBusy) {
+        this.restoreSelection = false;
+        element.focus();
+        element.setSelectionRange(this.selection.start, this.selection.end);
+      }
+    }
+    handleToolMouseDown(e) { e.preventDefault(); }
+    applyEdit(result) {
+      this.editBio = result.value;
+      this.selection = { start: result.start, end: result.end };
+      this.restoreSelection = true;
+      Page.render();
+    }
+    handleFormat(e) {
+      if (this.tx.isBusy || this.previewing) return false;
+      this.applyEdit(ProfileEditor.format(this.editBio, this.selection.start, this.selection.end, e.currentTarget.getAttribute("data-format")));
+      return false;
+    }
+    handleBioKey(e) {
+      this.handleBioSelection(e);
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || this.tx.isBusy || e.isComposing) return;
+      var key = e.key.toLowerCase();
+      if (key === "b" || key === "i") {
+        e.preventDefault();
+        this.applyEdit(ProfileEditor.format(this.editBio, this.selection.start, this.selection.end, key === "b" ? "bold" : "italic"));
+      } else if (key === "k") { e.preventDefault(); this.handleLinkToggle(); }
+    }
+    handlePreview() { this.previewing = true; this.linkOpen = false; Page.render(); return false; }
+    handleWrite() { this.previewing = false; this.restoreSelection = true; Page.render(); return false; }
+    handleLinkToggle() {
+      if (this.tx.isBusy || this.previewing) return false;
+      this.linkOpen = !this.linkOpen;
+      this.linkUrl = "";
+      this.restoreSelection = !this.linkOpen;
+      Page.render();
+      return false;
+    }
+    handleLinkUrlInput(e) { if (!this.tx.isBusy) { this.linkUrl = e.target.value; Page.render(); } }
+    handleLinkNode(element) { if (!this.tx.isBusy) element.focus(); }
+    handleLinkKey(e) {
+      if (e.key === "Enter") { e.preventDefault(); this.handleInsertLink(); }
+      else if (e.key === "Escape") { e.preventDefault(); this.handleLinkToggle(); }
+    }
+    handleInsertLink() {
+      var href = ProfileMarkdown.safeHref(this.linkUrl);
+      if (this.tx.isBusy || this.previewing || !href) return false;
+      this.linkOpen = false;
+      this.applyEdit(ProfileEditor.link(this.editBio, this.selection.start, this.selection.end, href));
+      return false;
+    }
+    bioBytes() { return new TextEncoder().encode(this.editBio).length; }
+    validationMessage() {
+      if (this.bioBytes() > 512) return "Your bio is too long. Shorten it to 512 bytes, including formatting.";
+      if (new TextEncoder().encode(this.editAvatar).length > 256) return "Your avatar URL is too long. Use a URL of 256 bytes or fewer.";
+      return "";
+    }
 
     handleSave() {
       var self = this, page = this.page;
-      if (this.tx.isBusy) return false;
+      if (!this.editing || !page.isOwner() || page.profileLoading || page.profileError || this.tx.isBusy || this.validationMessage()) return false;
       this.tx.run("updateProfile", [page.name, page.tld, this.editAvatar, this.editBio], function () {
         self.editing = false;
+        self.restoreEditFocus = true;
         page.loadProfile();
       });
       return false;
     }
 
+    renderEditor() {
+      var self = this, bytes = this.bioBytes(), busy = this.tx.isBusy;
+      var tools = [["bold", "Bold"], ["italic", "Italic"], ["heading", "Heading"], ["list", "List"], ["quote", "Quote"], ["code", "Code"]];
+      return h("div.profile-editor", { key: "bio-editor" }, [
+        h("div.profile-editor-head", [
+          h("label.field", { for: this.previewing ? undefined : "profile-bio", id: "profile-bio-label" }, "Bio"),
+          h("div.profile-editor-tabs", { role: "group", "aria-label": "Bio editor mode" }, [
+            h("button.btn.btn-sm", { type: "button", onclick: this.handleWrite, classes: { "is-active": !this.previewing }, "aria-pressed": this.previewing ? "false" : "true" }, "Write"),
+            h("button.btn.btn-sm", { type: "button", onclick: this.handlePreview, classes: { "is-active": this.previewing }, "aria-pressed": this.previewing ? "true" : "false" }, "Preview")
+          ])
+        ]),
+        !this.previewing ? h("div.profile-format-toolbar", { key: "format-toolbar", role: "group", "aria-label": "Bio formatting" }, [
+          tools.map(function (tool) {
+            return h("button.profile-format-button", { key: tool[0], type: "button", "data-format": tool[0], onclick: self.handleFormat, onmousedown: self.handleToolMouseDown, disabled: busy, title: tool[1], "aria-label": tool[1] }, tool[1]);
+          }),
+          h("button.profile-format-button", { key: "link", type: "button", onclick: this.handleLinkToggle, onmousedown: this.handleToolMouseDown, disabled: busy, "aria-expanded": this.linkOpen ? "true" : "false" }, "Link")
+        ]) : null,
+        this.linkOpen && !this.previewing ? h("div.profile-link-form.stack-sm", { key: "link-form" }, [
+          h("label.field", { for: "profile-link-url" }, "Link URL"),
+          h("input.input", { id: "profile-link-url", type: "text", value: this.linkUrl, placeholder: "https://example.com", oninput: this.handleLinkUrlInput, onkeydown: this.handleLinkKey, afterCreate: this.handleLinkNode, disabled: busy, "aria-describedby": "profile-link-help", "aria-invalid": this.linkUrl && !ProfileMarkdown.safeHref(this.linkUrl) ? "true" : "false" }),
+          h("p.small.mid", { id: "profile-link-help" }, this.linkUrl && !ProfileMarkdown.safeHref(this.linkUrl) ? "Use an https://, http://, mailto:, or local xite link." : "The selected text becomes the link label."),
+          h("div.row-gap", [
+            h("button.btn.btn-sm", { type: "button", onclick: this.handleInsertLink, disabled: busy || !ProfileMarkdown.safeHref(this.linkUrl) }, "Insert link"),
+            h("button.btn.btn-ghost.btn-sm", { type: "button", onclick: this.handleLinkToggle, disabled: busy }, "Cancel link")
+          ])
+        ]) : null,
+        this.previewing ? h("div.profile-preview", { key: "preview", role: "region", "aria-label": "Bio preview", tabindex: "0" }, [
+          this.editBio.trim() ? ProfileMarkdown.render(this.editBio, "preview-bio") : h("p.dim", "Your formatted bio will appear here.")
+        ]) : h("textarea.textarea.profile-bio-input", {
+          key: "write", id: "profile-bio", rows: "6", value: this.editBio, placeholder: "Tell people about yourself…", oninput: this.handleBioInput,
+          onselect: this.handleBioSelection, onkeyup: this.handleBioSelection, onclick: this.handleBioSelection, onkeydown: this.handleBioKey,
+          afterCreate: this.handleBioNode, afterUpdate: this.handleBioNode, disabled: busy, "aria-describedby": "profile-bio-help profile-bio-count", "aria-invalid": bytes > 512 ? "true" : "false"
+        }),
+        h("div.profile-editor-footer", [
+          h("span.small.mid", { id: "profile-bio-help" }, "Markdown supported. Formatting counts toward the limit."),
+          h("span.profile-byte-count", { id: "profile-bio-count", classes: { "is-over-limit": bytes > 512 } }, bytes + " / 512 bytes")
+        ]),
+        h("details.profile-format-help", [
+          h("summary", "Formatting help"),
+          h("p.small.mid", "Select text, then choose a formatting button. Use Ctrl or ⌘ with B for bold, I for italic, or K for a link. Preview shows how your saved bio will look."),
+          h("p.small.mid", "You can also type Markdown, such as **bold**, *italic*, or - a list item. HTML and embedded images are displayed as text.")
+        ])
+      ]);
+    }
+
     render() {
       var page = this.page, tx = this.tx;
       var body;
-      if (this.editing) {
+      if (this.editing && page.isOwner()) {
         body = h("div.stack-sm", [
           h("div", [
             h("label.field", { for: "profile-avatar" }, "Avatar URL"),
-            h("input.input", { id: "profile-avatar", type: "text", value: this.editAvatar, placeholder: "https://example.com/avatar.png", oninput: this.handleAvatarInput })
+            h("input.input", { id: "profile-avatar", type: "text", value: this.editAvatar, placeholder: "https://example.com/avatar.png", oninput: this.handleAvatarInput, disabled: tx.isBusy })
           ]),
-          h("div", [
-            h("label.field", { for: "profile-bio" }, "Bio"),
-            h("textarea.textarea", { id: "profile-bio", rows: "3", value: this.editBio, placeholder: "Tell the world about yourself", oninput: this.handleBioInput })
-          ]),
+          this.renderEditor(),
+          this.validationMessage() ? h("p.text-err.small", { key: "profile-validation", role: "alert" }, this.validationMessage()) : null,
+          page.profileError ? h("div.msg.msg-err", { key: "profile-read-error", role: "alert" }, [page.profileError, h("button.btn.btn-sm", { type: "button", onclick: this.handleRetry }, "Retry profile")]) : null,
           h("div.row-gap", [
-            h("button.btn.btn-primary", { type: "button", onclick: this.handleSave, disabled: tx.isBusy },
+            h("button.btn.btn-primary", { type: "button", onclick: this.handleSave, disabled: tx.isBusy || !!this.validationMessage() || page.profileLoading || !!page.profileError },
               tx.isPending ? "Confirming..." : tx.isConfirming ? "Waiting for tx..." : "Save Profile"),
             h("button.btn", { type: "button", onclick: this.handleCancel, disabled: tx.isBusy }, "Cancel")
           ]),
@@ -72,13 +205,17 @@
           page.avatar
             ? h("img.avatar", { src: page.avatar, alt: "avatar", referrerpolicy: "no-referrer", loading: "lazy", onerror: hideBroken })
             : h("div.avatar-empty", "?"),
-          h("p.mid", page.profileError || page.bio || "No bio set")
+          h("div.profile-bio", [
+            page.profileLoading ? h("p.mid", { role: "status" }, "Loading profile...")
+              : page.profileError ? h("div.stack-sm", [h("p.text-err", { role: "alert" }, page.profileError), h("button.btn.btn-sm", { type: "button", onclick: this.handleRetry }, "Retry profile")])
+              : page.bio ? ProfileMarkdown.render(page.bio, "saved-bio") : h("p.mid", "No bio set")
+          ])
         ]);
       }
       return h("div.card", { key: "profile" }, [
         h("div.card-head-inline", [
           h("h2", "Profile"),
-          page.isOwner() && !this.editing ? h("button.btn.btn-ghost.btn-sm", { type: "button", onclick: this.handleEdit }, "Edit") : null
+          page.isOwner() && !this.editing ? h("button.btn.btn-ghost.btn-sm", { type: "button", onclick: this.handleEdit, afterCreate: this.handleEditNode, afterUpdate: this.handleEditNode, disabled: page.profileLoading || !!page.profileError }, "Edit") : null
         ]),
         body
       ]);
@@ -523,6 +660,7 @@
       this.reads = {};
       this.resolveError = "";
       this.profileError = "";
+      this.profileLoading = true;
       this.identitiesError = "";
       this.contentRootError = "";
       this.primaryTx = new TxState();
@@ -596,6 +734,7 @@
         if (!self.isCurrent("owner", token)) return;
         self.owner = String(owner);
         self.resolveLoading = false;
+        if (!self.isOwner()) self.profile.reset();
         self.linked.onOwnerChanged();
         Page.render();
       }).catch(function () {
@@ -611,14 +750,18 @@
       var self = this;
       var token = this.beginRead("profile");
       this.profileError = "";
+      this.profileLoading = true;
+      Page.render();
       XidContract.read("getProfile", [this.name, this.tld]).then(function (r) {
         if (!self.isCurrent("profile", token)) return;
         self.avatar = String(r[0] || "");
         self.bio = String(r[1] || "");
+        self.profileLoading = false;
         Page.render();
       }).catch(function () {
         if (!self.isCurrent("profile", token)) return;
         self.profileError = "Could not load the profile. Refresh this name to try again.";
+        self.profileLoading = false;
         Page.render();
       });
     }

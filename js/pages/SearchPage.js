@@ -87,7 +87,7 @@
       return h("div.lookup-result.stack-sm", { key: "registered" }, [
         h("div.row-between", [h("h2.result-title", fullName), h("span.pill.pill-accent", "Registered")]),
         r.avatar ? h("img.avatar", { src: r.avatar, alt: fullName + " profile", referrerpolicy: "no-referrer", loading: "lazy", onerror: hideBroken }) : null,
-        r.bio ? h("p.mid", r.bio) : null,
+        r.bio ? ProfileMarkdown.render(r.bio, "search-bio") : null,
         h("div.kv", [h("span.k", "Wallet (EVM)"), h("span.v.mono", r.owner)]),
         h("div.kv", [h("span.k", "Wallet (Epix)"), h("span.v.mono", Bech32.evmToBech32(r.owner))]),
         r.profileError ? h("div.msg.msg-warn", ["Owner found, but the profile could not be loaded. ", h("button.btn.btn-secondary", { type: "button", onclick: this.lookup }, "Retry profile")]) : null,

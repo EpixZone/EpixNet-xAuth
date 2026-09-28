@@ -38,6 +38,18 @@ Address: `epix1xauthduuyn63k6kj54jzgp4l8nnjlhrsyaku8c`
 ### Profiles
 
 - Avatar URL and bio per name, stored on-chain through the xID precompile
+- Markdown bio editor with Bold, Italic, Heading, List, Quote, Code and Link
+  controls, keyboard shortcuts, and a Write/Preview toggle
+- Preview, saved profiles and search results use the same formatted display
+- Bio size counter enforces the module's 512-byte limit, including formatting;
+  avatar URLs are limited to 256 bytes
+- Raw HTML stays text and image markup displays its alt text. Links are checked
+  before rendering; profile markup cannot inject HTML or load embedded media.
+
+Markdown is stored as source text. The parser is vendored
+[Marked 15.0.12](https://github.com/markedjs/marked/tree/v15.0.12), under the MIT
+license in `js/lib/marked.LICENSE.txt`. Its tokens are rendered as a small set
+of maquette elements, without inserting generated HTML.
 
 ### Xite and other records
 
@@ -117,7 +129,8 @@ node --test tests/*.test.cjs
 ```
 
 The suite covers lookups and pagination, registration and return-flow recovery,
-record validation, transaction errors, stale account reads, routing and stats.
+record validation, Markdown rendering and editing, transaction errors, stale
+account reads, routing and stats.
 Local tests do not submit transactions. For an end-to-end release check, use an
 owned test name and an EpixNet node to confirm wallet signing, certificate
 selection and return navigation from EpixTalk or EpixPost.
