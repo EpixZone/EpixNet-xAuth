@@ -63,8 +63,10 @@
     provider: function (i) {
       if (!this.providers[i]) {
         var url = this.evmUrls[i] || this.DEFAULT_EVM;
+        var request = new ethers.FetchRequest(url);
+        request.timeout = 15000;
         this.providers[i] = new ethers.JsonRpcProvider(
-          url,
+          request,
           { chainId: this.ID, name: "epix" },
           { staticNetwork: true }
         );
@@ -87,8 +89,10 @@
     withRpc: async function (fn) {
       var urls = this.evmUrls.length ? this.evmUrls : [this.DEFAULT_EVM];
       var lastErr = null;
+      // Other in-flight reads may update the preferred endpoint while we wait.
+      var startIndex = this.evmIndex;
       for (var n = 0; n < urls.length; n++) {
-        var idx = (this.evmIndex + n) % urls.length;
+        var idx = (startIndex + n) % urls.length;
         try {
           var res = await fn(this.provider(idx));
           this.evmIndex = idx;

@@ -51,9 +51,9 @@
     boot() {
       var self = this;
       var timeout = new Promise(function (resolve) { setTimeout(function () { resolve(null); }, 2000); });
-      var server = this.wrapper_nonce ? this.cmd("serverInfo") : Promise.resolve(null);
-      var site = this.wrapper_nonce ? this.cmd("siteInfo") : Promise.resolve(null);
-      var state = this.wrapper_nonce ? this.cmd("wrapperGetState") : Promise.resolve(null);
+      var server = this.wrapper_nonce ? this.cmd("serverInfo").catch(function () { return null; }) : Promise.resolve(null);
+      var site = this.wrapper_nonce ? this.cmd("siteInfo").catch(function () { return null; }) : Promise.resolve(null);
+      var state = this.wrapper_nonce ? this.cmd("wrapperGetState").catch(function () { return null; }) : Promise.resolve(null);
       Promise.race([Promise.all([server, site, state]), timeout]).then(function (results) {
         var server_info = results ? results[0] : null;
         self.server_info = server_info;
@@ -92,6 +92,8 @@
     }
 
     route(query) {
+      var previous = this.content;
+      this.history_state.url = query || "";
       this.params = Text.queryParse(query || "");
       var urls = this.params.urls || [""];
       this.chrome = !this.link_mode;
@@ -105,8 +107,8 @@
           case "Name":
             this.content = this.pages.name_detail;
             this.pages.name_detail.enter(
-              decodeURIComponent(urls[1] || Chain.DEFAULT_TLD),
-              decodeURIComponent(urls[2] || ""),
+              urls[1] || Chain.DEFAULT_TLD,
+              urls[2] || "",
               this.params.linkIdentity || null
             );
             break;
@@ -116,9 +118,13 @@
             this.content = this.pages.add_peer;
             this.pages.add_peer.enter(this.peer_address, this.return_to);
             break;
-          default: this.content = this.pages.register; break;
+          default:
+            this.content = this.pages.register;
+            if (this.params.name && this.pages.register.enter) this.pages.register.enter(this.params.name);
+            break;
         }
       }
+      if (previous && previous !== this.content && previous.leave) previous.leave();
       this.render();
     }
 

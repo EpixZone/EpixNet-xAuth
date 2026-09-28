@@ -23,7 +23,7 @@
  "edx": 1,
  "favicon": "img/favicon.png",
  "files": {},
- "ignore": "(\\.git/.*|archive/.*|node_modules/.*|data/users/.*|pool/.*|\\.sign-cache\\.json|\\.gitignore|\\.DS_Store|LICENSE|.*\\.md)",
+ "ignore": "(\\.git/.*|archive/.*|tests/.*|node_modules/.*|data/users/.*|pool/.*|\\.sign-cache\\.json|\\.gitignore|\\.DS_Store|LICENSE|.*\\.md)",
  "includes": {
   "data/users/content.json": {
    "signers": [],

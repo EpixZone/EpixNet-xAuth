@@ -8,6 +8,7 @@
     }
 
     reset() {
+      this.generation = (this.generation || 0) + 1;
       this.status = "idle";
       this.hash = null;
       this.cosmosHash = null;
@@ -53,19 +54,24 @@
     // Run `fn(args)` on the contract; `onSuccess` fires after the receipt.
     run(fn, args, onSuccess) {
       var self = this;
+      if (this.isBusy) return Promise.resolve(null);
       this.reset();
+      var generation = this.generation;
       this.status = "simulating";
       Page.render();
       return XidContract.write(fn, args, function (status, hash) {
+        if (generation !== self.generation) return;
         self.status = status;
         if (hash) self.hash = hash;
         Page.render();
       }).then(function (receipt) {
+        if (generation !== self.generation) return receipt;
         if (self.hash) self.resolveCosmosHash(self.hash);
         if (onSuccess) onSuccess(receipt);
         Page.render();
         return receipt;
       }).catch(function (err) {
+        if (generation !== self.generation) return null;
         self.status = "error";
         self.error = err;
         Page.render();
