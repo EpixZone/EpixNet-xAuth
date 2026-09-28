@@ -3,7 +3,8 @@
  "files": {},
  "ignore": ".*",
  "inner_path": "data/users/content.json",
- "signs": {},
+ "modified": 1790630729,
+ "signs": {"epix1xauthduuyn63k6kj54jzgp4l8nnjlhrsyaku8c": "HED8MyW1wKOYq2oWXWZvuoj1IGyaIFui6d9VnBRSJLvcFmH67nBDF4vgbUcM2gQtG8MDsndpSf97jgv/K/4pMLU="},
  "user_contents": {
   "cert_signers": {
    "xid.epix": ["chain"]
