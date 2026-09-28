@@ -481,6 +481,15 @@ button.btn:disabled:hover { background: var(--epix-surface-2) }
 button.btn-primary:disabled:hover { background: var(--epix-accent) }
 .input, .select { min-height: 44px; font-size: 15px }
 .input-mono { font-size: 13px }
+.RegisterPage #register-name, .SearchPage .input {
+ min-height: 56px; padding: 0 16px; border: 2px solid var(--epix-text-low);
+ background: var(--epix-surface-2); font-size: 18px; border-radius: 10px;
+}
+.SearchPage .input-mono { font-size: 16px }
+.RegisterPage #register-name::placeholder, .SearchPage .input::placeholder { color: var(--epix-text-mid); opacity: 1 }
+.RegisterPage #register-name:hover:not(:disabled), .SearchPage .input:hover { border-color: var(--epix-text-mid) }
+.RegisterPage #register-name:focus, .SearchPage .input:focus { border-color: var(--epix-focus); box-shadow: 0 0 0 4px var(--epix-accent-ring) }
+.RegisterPage #register-name:disabled { opacity: .6; cursor: not-allowed }
 .suffix-chip { min-height: 44px; display: inline-flex; align-items: center }
 .btn-link { font: inherit }
 .field { font-weight: 600 }
