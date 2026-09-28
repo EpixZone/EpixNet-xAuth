@@ -1,5 +1,7 @@
 // Current chain counters. These totals do not provide a historical time series.
 (function () {
+  var XID_MODULE_BECH32 = "epix1gs90m79353yufdyqrl93yklqgcg0s6cfdcjv7h";
+
   function counter(value) {
     if (typeof value === "number" && !Number.isSafeInteger(value)) throw new Error("Invalid statistics response");
     if (!/^\d+$/.test(String(value))) throw new Error("Invalid statistics response");
@@ -35,12 +37,33 @@
       this.loading = false;
       this.error = "";
       this.refreshedAt = null;
+      this.recentRegistrations = null;
+      this.recentLoading = false;
+      this.recentError = "";
+      this.recentRefreshedAt = null;
       this.handleRefresh = this.handleRefresh.bind(this);
+      this.fetchRecentRegistrations = this.fetchRecentRegistrations.bind(this);
     }
 
-    enter() { this.fetchStats(); }
+    enter() { this.handleRefresh(); }
 
-    handleRefresh() { this.fetchStats(); return false; }
+    handleRefresh() { this.fetchStats(); this.fetchRecentRegistrations(); return false; }
+
+    async fetchRecentRegistrations() {
+      if (this.recentLoading) return;
+      this.recentLoading = true;
+      this.recentError = "";
+      Page.render();
+      try {
+        this.recentRegistrations = (await Rest.latestRegistrations(5)).slice(0, 5);
+        this.recentRefreshedAt = new Date();
+      } catch (e) {
+        this.recentError = "Could not load recent registrations. " + (this.recentRegistrations ? "The last successful list is still shown below." : "Please try again.");
+      } finally {
+        this.recentLoading = false;
+        Page.render();
+      }
+    }
 
     async fetchStats() {
       if (this.loading) return;
@@ -61,12 +84,19 @@
       }
     }
 
-    renderMetric(label, value, unit, note, key, title) {
-      return h("div.card.stat-card", { key: key }, [
+    renderMetric(label, value, unit, note, key, title, link) {
+      var properties = { key: key };
+      if (link) {
+        properties.href = link.href;
+        properties.target = "_blank";
+        properties.rel = "noopener noreferrer";
+      }
+      return h(link ? "a.card.stat-card.card-link" : "div.card.stat-card", properties, [
         h("p.overline", label),
         h("p.stat-value", { title: title || value }, value),
         unit ? h("p.stat-unit", unit) : null,
-        h("p.stat-note", note)
+        h("p.stat-note", note),
+        link ? h("p.stat-action", [link.label, h("span.sr-only", " (opens in a new tab)")]) : null
       ]);
     }
 
@@ -80,7 +110,9 @@
       }
       return h("div.stats-grid", [
         this.renderMetric("Registered names", s ? Format.integer(s.totalNames) : "…", null, "Permanent names on EpixChain", "names"),
-        this.renderMetric("Registration fees burned", s ? Format.burned(s.totalBurned) : "…", "EPIX", "Cumulative registration fees", "burned"),
+        this.renderMetric("Registration fees burned", s ? Format.burned(s.totalBurned) : "…", "EPIX", "Cumulative registration fees", "burned", null, {
+          href: Chain.explorerAccountUrl(XID_MODULE_BECH32), label: "View burn transactions ↗"
+        }),
         this.renderMetric("Average burn per name", average, "EPIX per registration", "Lifetime mean across all registrations", "average", s && s.averageBurned !== null ? (s.averageApproximate ? "≈ " : "") + Format.burned(s.averageBurned) + " EPIX per registration" : null),
         this.renderMetric("Active TLDs", s ? Format.integer(s.activeTlds) : "…", s ? "of " + Format.integer(s.tlds.length) + " configured" : null, "Accepting new registrations", "tlds")
       ]);
@@ -120,13 +152,46 @@
       ]);
     }
 
+    renderRecentRegistrations() {
+      var entries = this.recentRegistrations;
+      return h("section.card-flush.recent-registrations", { "aria-labelledby": "recent-registrations-heading", "aria-busy": this.recentLoading ? "true" : "false" }, [
+        h("div.recent-head", [
+          h("h2", { id: "recent-registrations-heading" }, "Latest registrations"),
+          h("p.dim.small", "Up to five recent registrations from the chain's transaction index.")
+        ]),
+        this.recentLoading ? h("p.recent-meta", { key: "loading", role: "status" }, entries ? "Refreshing registrations..." : "Loading registrations...") : null,
+        this.recentError ? h("div.msg.msg-err.recent-meta", { key: "error", role: "alert" }, [
+          h("p", this.recentError), h("button.btn.btn-sm", { type: "button", onclick: this.fetchRecentRegistrations, disabled: this.recentLoading }, "Retry registrations")
+        ]) : null,
+        entries && entries.length ? h("table.table.table-collapse.recent-table", { "aria-label": "Latest indexed xID registrations" }, [
+          h("thead", [h("tr", [h("th", { scope: "col" }, "Name"), h("th", { scope: "col" }, "Registered"), h("th", { scope: "col" }, "Transaction")])]),
+          h("tbody", entries.map(function (entry) {
+            var fullName = entry.name + "." + entry.tld;
+            return h("tr", { key: entry.txHash + "/" + fullName }, [
+              h("th", { scope: "row", "data-label": "Name" }, [h("a.text-link", { href: Page.nameUrl(entry.tld, entry.name), onclick: Page.handleLinkClick }, fullName)]),
+              h("td", { "data-label": "Registered" }, [h("time", { datetime: entry.timestamp, title: entry.timestamp }, new Date(entry.timestamp).toLocaleString())]),
+              h("td", { "data-label": "Transaction" }, [h("a.text-link.mono", {
+                href: Chain.explorerTxUrl(entry.txHash), target: "_blank", rel: "noopener noreferrer", title: entry.txHash,
+                "aria-label": "View registration transaction for " + fullName + " (opens in a new tab)"
+              }, entry.txHash.slice(0, 8) + "…" + entry.txHash.slice(-6) + " ↗")])
+            ]);
+          }))
+        ]) : entries && !this.recentLoading && !this.recentError ? h("p.recent-meta", { key: "empty" }, "No indexed registrations are available from this node yet.") : null,
+        entries && entries.length > 0 && entries.length < 5 ? h("p.recent-meta", { key: "limited" }, "Showing " + entries.length + " registration" + (entries.length === 1 ? "" : "s") + " available in this node's transaction index.") : null,
+        this.recentRefreshedAt ? h("p.recent-meta", { key: "updated" }, [
+          "Last successful refresh: ", h("time", { datetime: this.recentRefreshedAt.toISOString() }, this.recentRefreshedAt.toLocaleString()), ". Dates are shown in your local time."
+        ]) : null
+      ]);
+    }
+
     render() {
       var s = this.stats;
+      var refreshing = this.loading || this.recentLoading;
       var status = this.loading ? (s ? "Refreshing chain statistics…" : "Loading chain statistics…") : this.refreshedAt ? "Last successful refresh: " : "Statistics have not loaded yet.";
-      return h("div.stack.StatsPage", { key: "stats", "aria-busy": this.loading ? "true" : "false" }, [
+      return h("div.stack.StatsPage", { key: "stats", "aria-busy": refreshing ? "true" : "false" }, [
         h("div.stats-head", [
           h("div.page-head", [h("h1", "Network statistics"), h("p", "Registration activity and fees burned across xID on EpixChain.")]),
-          h("button.btn", { type: "button", onclick: this.handleRefresh, disabled: this.loading }, this.loading ? "Refreshing…" : "Refresh data")
+          h("button.btn", { type: "button", onclick: this.handleRefresh, disabled: refreshing }, refreshing ? "Refreshing…" : "Refresh data")
         ]),
         h("p.stats-meta", { role: "status", "aria-live": "polite", "aria-atomic": "true" }, [
           status,
@@ -139,6 +204,7 @@
           h("p.mid", "Totals will update after the first name is registered. Refresh to check for new registrations."),
           h("a.text-link", { href: "?Prices", onclick: Page.handleLinkClick }, "Explore registration prices")
         ]) : null,
+        this.renderRecentRegistrations(),
         s ? this.renderDistribution() : null,
         s ? h("p.dim.small", "Totals come from the chain's registration counters. Fees burned exclude network gas fees. The average is the lifetime total divided by registered names, rounded to four decimal places.") : null
       ]);

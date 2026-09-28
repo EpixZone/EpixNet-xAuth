@@ -516,6 +516,8 @@ button.btn-primary:disabled:hover { background: var(--epix-accent) }
 .stat-value { font-size: clamp(24px, 3vw, 32px); line-height: 1.3; font-weight: 650; letter-spacing: -.035em; font-variant-numeric: tabular-nums; margin-top: 14px }
 .stat-unit { font-size: 13px; font-weight: 500; color: var(--epix-text-mid); letter-spacing: 0; margin-left: 6px }
 .stat-note { font-size: 12px; color: var(--epix-text-low); margin-top: 10px; line-height: 1.5 }
+.stat-action { margin-top: 16px; color: var(--epix-link); font-size: 13px; font-weight: 600 }
+.stat-card.card-link:hover { border-color: var(--epix-link) }
 .stats-distribution { padding: 24px }
 .stat-share { display: block; font-size: 13px; font-variant-numeric: tabular-nums; margin-bottom: 6px; white-space: nowrap }
 .stats-bar { height: 6px; width: 100%; min-width: 72px; border-radius: 999px; background: var(--epix-surface-3); overflow: hidden }
@@ -524,6 +526,24 @@ button.btn-primary:disabled:hover { background: var(--epix-accent) }
 .stats-table tbody th { font-size: 14px; font-weight: 600; letter-spacing: 0; text-transform: none; vertical-align: top; padding: 16px 20px; background: transparent }
 .stats-table td { overflow-wrap: anywhere; min-width: 0; padding: 16px 20px }
 .stats-table .num { font-variant-numeric: tabular-nums; font-size: 12px }
+.recent-registrations { width: 100%; min-width: 0 }
+.recent-head { padding: 20px 24px; border-bottom: 1px solid var(--epix-border) }
+.recent-head h2 { color: var(--epix-text) }
+.recent-head p { margin-top: 6px; color: var(--epix-text-mid); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere }
+.recent-table { width: 100%; table-layout: fixed }
+.recent-table thead th { padding: 11px 24px }
+.recent-table thead th:first-child { width: 40% }
+.recent-table thead th:nth-child(2) { width: 34% }
+.recent-table thead th:last-child { width: 26% }
+.recent-table tbody th, .recent-table td { min-width: 0; padding: 16px 24px; vertical-align: top; overflow-wrap: anywhere }
+.recent-table tbody th { background: transparent; color: var(--epix-text); font-size: 14px; font-weight: 600; letter-spacing: 0; text-align: left; text-transform: none }
+.recent-table tbody tr:last-child th { border-bottom: 0 }
+.recent-table td { color: var(--epix-text-mid) }
+.recent-table time { display: block; white-space: normal; font-variant-numeric: tabular-nums; line-height: 1.55; overflow-wrap: anywhere }
+.recent-table a { color: var(--epix-link); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em; overflow-wrap: anywhere }
+.recent-table a:hover { text-decoration-thickness: 2px }
+.recent-table td:last-child a, .recent-table .mono { font-family: var(--epix-font-mono); font-size: 13px; white-space: normal }
+.recent-meta { margin: 0; padding: 12px 24px; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere }
 .wizard { max-width: 620px }
 .wizard-title { line-height: 1.2; letter-spacing: -.025em }
 .wizard-context, .wizard-note { font-size: 13px; line-height: 1.6; color: var(--epix-text-mid) }
@@ -568,6 +588,13 @@ button.btn-primary:disabled:hover { background: var(--epix-accent) }
  .lookup-result { padding: 16px }
  .step-label { white-space: normal; font-size: 11px }
  .steps { align-items: flex-start }
+ .recent-head { padding: 18px 20px }
+ .recent-table { table-layout: auto }
+ .recent-table tbody th { display: block; width: auto; padding: 8px 20px 4px; border: 0 }
+ .recent-table tbody th::before { content: attr(data-label); display: block; margin-bottom: 3px; color: var(--epix-text-low); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase }
+ .recent-table td { padding: 6px 20px }
+ .recent-table time { margin-top: 2px }
+ .recent-meta { padding: 12px 20px }
 }
 @media (max-width: 720px) {
  .sidebar-wallet .wallet-menu .btn { width: auto; height: auto; min-height: 36px; padding: 8px 12px; font-size: 13px }

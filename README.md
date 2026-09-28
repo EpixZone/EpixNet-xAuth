@@ -82,7 +82,10 @@ of maquette elements, without inserting generated HTML.
 - Registered names, total fees burned, lifetime average burn per name and active
   TLDs, with a per-TLD distribution and last successful refresh time
 - Refresh failures preserve the last successful snapshot. Totals come from the
-  chain's counters; there is no historical activity feed or estimated growth.
+  chain's counters, with a link to the xID module account's burn transactions.
+- Up to five recent indexed registrations show each name, registration date
+  and transaction. Available history depends on the node's transaction index;
+  the page reports when fewer than five entries are available.
 
 ## Wallets
 
