@@ -37,31 +37,76 @@
       this.loading = false;
       this.error = "";
       this.refreshedAt = null;
-      this.recentRegistrations = null;
+      this.recentXids = null;
       this.recentLoading = false;
       this.recentError = "";
       this.recentRefreshedAt = null;
+      this.active = false;
+      this.recentRefreshTimer = null;
+      this.recentRefreshQueued = false;
       this.handleRefresh = this.handleRefresh.bind(this);
-      this.fetchRecentRegistrations = this.fetchRecentRegistrations.bind(this);
+      this.fetchRecentXids = this.fetchRecentXids.bind(this);
     }
 
-    enter() { this.handleRefresh(); }
+    enter() {
+      this.active = true;
+      this.recentRefreshQueued = this.recentLoading;
+      this.handleRefresh();
+    }
 
-    handleRefresh() { this.fetchStats(); this.fetchRecentRegistrations(); return false; }
+    leave() {
+      this.active = false;
+      clearTimeout(this.recentRefreshTimer);
+      this.recentRefreshTimer = null;
+      this.recentRefreshQueued = false;
+    }
 
-    async fetchRecentRegistrations() {
-      if (this.recentLoading) return;
+    onSiteInfo(info) {
+      var event = info && info.event;
+      if (!Array.isArray(event)) return;
+      if (event[0] === "updated" || (event[0] === "file_done" && typeof event[1] === "string" &&
+          /^data\/users\/[^/]+\/(?:content|data(?:-[0-9a-z]+)?)\.json$/.test(event[1]))) {
+        this.scheduleRecentRefresh();
+      }
+    }
+
+    onReconnect() { this.scheduleRecentRefresh(); }
+
+    scheduleRecentRefresh() {
+      if (!this.active || !Page.isEmbedded) return;
+      // A publication arrives as several files. Coalesce that burst, and
+      // retain a follow-up when new data arrives during an in-flight query.
+      if (this.recentLoading) { this.recentRefreshQueued = true; return; }
+      if (this.recentRefreshTimer !== null) return;
+      var self = this;
+      this.recentRefreshTimer = setTimeout(function () {
+        self.recentRefreshTimer = null;
+        self.fetchRecentXids();
+      }, 250);
+    }
+
+    handleRefresh() { this.fetchStats(); this.fetchRecentXids(); return false; }
+
+    async fetchRecentXids() {
+      if (!Page.isEmbedded || this.recentLoading) return;
+      clearTimeout(this.recentRefreshTimer);
+      this.recentRefreshTimer = null;
+      this.recentRefreshQueued = false;
       this.recentLoading = true;
       this.recentError = "";
       Page.render();
       try {
-        this.recentRegistrations = (await Rest.latestRegistrations(5)).slice(0, 5);
+        this.recentXids = (await XidDirectory.latest(5)).slice(0, 5);
         this.recentRefreshedAt = new Date();
       } catch (e) {
-        this.recentError = "Could not load recent registrations. " + (this.recentRegistrations ? "The last successful list is still shown below." : "Please try again.");
+        this.recentError = "Could not load recent xIDs. " + (this.recentXids ? "The last successful list is still shown below." : "Please try again.");
       } finally {
         this.recentLoading = false;
         Page.render();
+        if (this.recentRefreshQueued) {
+          this.recentRefreshQueued = false;
+          this.scheduleRecentRefresh();
+        }
       }
     }
 
@@ -152,36 +197,32 @@
       ]);
     }
 
-    renderRecentRegistrations() {
-      var entries = this.recentRegistrations;
-      return h("section.card-flush.recent-registrations", { "aria-labelledby": "recent-registrations-heading", "aria-busy": this.recentLoading ? "true" : "false" }, [
+    renderRecentXids() {
+      var entries = this.recentXids;
+      return h("section.card-flush.recent-xids", { "aria-labelledby": "recent-xids-heading", "aria-busy": this.recentLoading ? "true" : "false" }, [
         h("div.recent-head", [
-          h("h2", { id: "recent-registrations-heading" }, "Latest registrations"),
-          h("p.dim.small", "Up to five recent registrations from the chain's transaction index.")
-        ]),
-        this.recentLoading ? h("p.recent-meta", { key: "loading", role: "status" }, entries ? "Refreshing registrations..." : "Loading registrations...") : null,
+          h("h2", { id: "recent-xids-heading" }, "Latest xIDs"),
+          h("p.dim.small", "Up to five xIDs from locally available user data, ordered by its latest update. These dates reflect data changes, not chain registrations.")
+        ])
+      ].concat(!Page.isEmbedded ? [h("p.recent-meta", { key: "standalone" }, "Open this xite in EpixNet to see recent xIDs.")] : [
+        this.recentLoading ? h("p.recent-meta", { key: "loading", role: "status" }, entries ? "Refreshing xIDs..." : "Loading xIDs...") : null,
         this.recentError ? h("div.msg.msg-err.recent-meta", { key: "error", role: "alert" }, [
-          h("p", this.recentError), h("button.btn.btn-sm", { type: "button", onclick: this.fetchRecentRegistrations, disabled: this.recentLoading }, "Retry registrations")
+          h("p", this.recentError), h("button.btn.btn-sm", { type: "button", onclick: this.fetchRecentXids, disabled: this.recentLoading }, "Retry xIDs")
         ]) : null,
-        entries && entries.length ? h("table.table.table-collapse.recent-table", { "aria-label": "Latest indexed xID registrations" }, [
-          h("thead", [h("tr", [h("th", { scope: "col" }, "Name"), h("th", { scope: "col" }, "Registered"), h("th", { scope: "col" }, "Transaction")])]),
+        entries && entries.length ? h("table.table.table-collapse.recent-table", { "aria-label": "Latest xIDs from user data" }, [
+          h("thead", [h("tr", [h("th", { scope: "col" }, "Name"), h("th", { scope: "col" }, "Last updated")])]),
           h("tbody", entries.map(function (entry) {
             var fullName = entry.name + "." + entry.tld;
-            return h("tr", { key: entry.txHash + "/" + fullName }, [
+            return h("tr", { key: fullName }, [
               h("th", { scope: "row", "data-label": "Name" }, [h("a.text-link", { href: Page.nameUrl(entry.tld, entry.name), onclick: Page.handleLinkClick }, fullName)]),
-              h("td", { "data-label": "Registered" }, [h("time", { datetime: entry.timestamp, title: entry.timestamp }, new Date(entry.timestamp).toLocaleString())]),
-              h("td", { "data-label": "Transaction" }, [h("a.text-link.mono", {
-                href: Chain.explorerTxUrl(entry.txHash), target: "_blank", rel: "noopener noreferrer", title: entry.txHash,
-                "aria-label": "View registration transaction for " + fullName + " (opens in a new tab)"
-              }, entry.txHash.slice(0, 8) + "…" + entry.txHash.slice(-6) + " ↗")])
+              h("td", { "data-label": "Last updated" }, [h("time", { datetime: entry.timestamp, title: entry.timestamp }, new Date(entry.timestamp).toLocaleString())])
             ]);
           }))
-        ]) : entries && !this.recentLoading && !this.recentError ? h("p.recent-meta", { key: "empty" }, "No indexed registrations are available from this node yet.") : null,
-        entries && entries.length > 0 && entries.length < 5 ? h("p.recent-meta", { key: "limited" }, "Showing " + entries.length + " registration" + (entries.length === 1 ? "" : "s") + " available in this node's transaction index.") : null,
+        ]) : entries && !this.recentLoading && !this.recentError ? h("p.recent-meta", { key: "empty" }, "No xIDs are available in the local user data yet.") : null,
         this.recentRefreshedAt ? h("p.recent-meta", { key: "updated" }, [
           "Last successful refresh: ", h("time", { datetime: this.recentRefreshedAt.toISOString() }, this.recentRefreshedAt.toLocaleString()), ". Dates are shown in your local time."
         ]) : null
-      ]);
+      ]));
     }
 
     render() {
@@ -204,7 +245,7 @@
           h("p.mid", "Totals will update after the first name is registered. Refresh to check for new registrations."),
           h("a.text-link", { href: "?Prices", onclick: Page.handleLinkClick }, "Explore registration prices")
         ]) : null,
-        this.renderRecentRegistrations(),
+        this.renderRecentXids(),
         s ? this.renderDistribution() : null,
         s ? h("p.dim.small", "Totals come from the chain's registration counters. Fees burned exclude network gas fees. The average is the lifetime total divided by registered names, rounded to four decimal places.") : null
       ]);

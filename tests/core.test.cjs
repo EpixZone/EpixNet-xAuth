@@ -77,6 +77,69 @@ test('standalone Back updates routing state so the last navigation item works ag
   assert.equal(prevented, true);
 });
 
+test('site-info notifications update app state and reach only the active page', () => {
+  const { c, load } = harness();
+  load('lib/epixframe.js');
+  const dispatch = c.EpixFrame.prototype._onMessage;
+  // Skip boot and browser setup, but exercise the real wrapper dispatcher.
+  c.EpixFrame = class {};
+  c.addEventListener = () => {};
+  load('XidApp.js');
+  const app = c.Page;
+  const delivered = [];
+  let renders = 0, hiddenCalls = 0;
+  app.projector = { scheduleRender() { renders++; } };
+  app.pages = {
+    active: { onSiteInfo(info) { assert.equal(app.site_info, info); delivered.push(info); } },
+    hidden: { onSiteInfo() { hiddenCalls++; } }
+  };
+  app.content = app.pages.active;
+  const info = { event: ['file_done', 'data/users/person.epix/data.json'], auth_address: 'local-peer' };
+  dispatch.call(app, { data: { cmd: 'setSiteInfo', params: info } });
+  assert.equal(app.site_info, info);
+  assert.deepEqual(delivered, [info]);
+  assert.equal(hiddenCalls, 0);
+  assert.equal(renders, 1);
+  app.content = {};
+  const next = { event: ['updated'] };
+  dispatch.call(app, { data: { cmd: 'setSiteInfo', params: next } });
+  assert.equal(app.site_info, next);
+  assert.equal(renders, 2, 'pages without a notification handler still render');
+});
+
+test('websocket reconnect notifies the current page after fresh site info arrives', () => {
+  const { c, load } = harness();
+  load('lib/epixframe.js');
+  const dispatch = c.EpixFrame.prototype._onMessage;
+  // Skip boot and browser setup, but exercise the real wrapper dispatcher.
+  c.EpixFrame = class {};
+  c.addEventListener = () => {};
+  load('XidApp.js');
+  const app = c.Page;
+  let callback, renders = 0, previousCalls = 0, currentCalls = 0;
+  const info = { auth_address: 'reconnected-peer' };
+  app.projector = { scheduleRender() { renders++; } };
+  app.content = { onReconnect() { previousCalls++; } };
+  app.cmd = (command, parameters, done) => {
+    assert.equal(command, 'siteInfo');
+    assert.equal(Object.keys(parameters).length, 0);
+    callback = done;
+  };
+  dispatch.call(app, { data: { cmd: 'wrapperOpenedWebsocket', params: {} } });
+  assert.equal(previousCalls, 0);
+  assert.equal(renders, 0);
+  app.content = { onReconnect() { assert.equal(app.site_info, info); currentCalls++; } };
+  callback(info);
+  assert.equal(app.site_info, info);
+  assert.equal(currentCalls, 1);
+  assert.equal(previousCalls, 0, 'a page left while siteInfo loads must not receive the reconnect');
+  assert.equal(renders, 1);
+  app.content = {};
+  dispatch.call(app, { data: { cmd: 'wrapperOpenedWebsocket', params: {} } });
+  callback(info);
+  assert.equal(renders, 2, 'pages without a reconnect handler still render');
+});
+
 test('namesAll follows encoded cursors when the server caps each requested page at ten names', async () => {
   const { c, load } = harness();
   load('utils/Rest.js');
