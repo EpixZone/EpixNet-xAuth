@@ -83,9 +83,11 @@ of maquette elements, without inserting generated HTML.
   TLDs, with a per-TLD distribution and last successful refresh time
 - Refresh failures preserve the last successful snapshot. Totals come from the
   chain's counters, with a link to the xID module account's burn transactions.
-- Up to five recent indexed registrations show each name, registration date
-  and transaction. Available history depends on the node's transaction index;
-  the page reports when fewer than five entries are available.
+- Latest xIDs shows up to five names from locally available user data, sorted by
+  the signed user manifest's last update time. This includes new and regenerated
+  identity bundles. Open the xite in EpixNet to load this list; it refreshes when
+  user data arrives and after reconnecting. These are data publication dates,
+  so the list does not depend on RPC transaction history.
 
 ## Wallets
 

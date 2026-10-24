@@ -4,11 +4,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function setup(fetchStats = async () => ({ ok: true, data: snapshot() }), fetchRecent = async () => []) {
+function setup(fetchStats = async () => ({ ok: true, data: snapshot() }), fetchRecent = async () => [], isEmbedded = true) {
+  const clock = fakeClock();
   const context = {
-    Intl, Date,
-    Rest: { stats: fetchStats, latestRegistrations: fetchRecent },
-    Page: { render() {}, handleLinkClick() {}, nameUrl: (tld, name) => '?Name:' + tld + ':' + name }
+    Intl, Date, setTimeout: clock.setTimeout, clearTimeout: clock.clearTimeout,
+    Rest: { stats: fetchStats },
+    XidDirectory: { latest: fetchRecent },
+    Page: { isEmbedded, render() {}, handleLinkClick() {}, nameUrl: (tld, name) => '?Name:' + tld + ':' + name }
   };
   context.window = context;
   context.h = function (selector, properties, children) {
@@ -23,7 +25,31 @@ function setup(fetchStats = async () => ({ ok: true, data: snapshot() }), fetchR
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), context, { filename: file });
   }
   context.Chain.initDefaults();
+  context.clock = clock;
   return context;
+}
+
+function fakeClock() {
+  let now = 0, nextId = 0;
+  const timers = new Map();
+  return {
+    timers,
+    setTimeout(callback, delay) {
+      const id = ++nextId;
+      timers.set(id, { callback, due: now + delay });
+      return id;
+    },
+    clearTimeout(id) { timers.delete(id); },
+    advance(milliseconds) {
+      now += milliseconds;
+      for (const [id, timer] of timers) {
+        if (timer.due <= now) {
+          timers.delete(id);
+          timer.callback();
+        }
+      }
+    }
+  };
 }
 
 function snapshot(overrides = {}) {
@@ -55,13 +81,11 @@ function deferred() {
   const promise = new Promise((done, fail) => { resolve = done; reject = fail; });
   return { promise, resolve, reject };
 }
-function registration(index, overrides = {}) {
+function xid(index, overrides = {}) {
   return {
     name: 'person-' + index,
     tld: 'epix',
-    txHash: String(index).padStart(64, 'A'),
     timestamp: '2026-09-28T12:34:0' + index + 'Z',
-    height: String(500 + index),
     ...overrides
   };
 }
@@ -215,44 +239,42 @@ test('refresh cannot issue overlapping requests and exposes its loading state', 
   assert.equal(page.loading, false);
 });
 
-test('recent registrations request five records and display names, local dates, and Cosmos explorer links', async () => {
-  const records = Array.from({ length: 5 }, (_, i) => registration(i));
+test('recent xIDs request five records and display names and local data-update dates', async () => {
+  const records = Array.from({ length: 5 }, (_, i) => xid(i));
   const requested = [];
   const c = setup(undefined, async count => { requested.push(count); return records; });
   const page = new c.StatsPage();
-  await page.fetchRecentRegistrations();
+  await page.fetchRecentXids();
   assert.deepEqual(requested, [5]);
   assert.equal(page.recentError, '');
   assert.ok(page.recentRefreshedAt instanceof Date);
-  const rendered = page.renderRecentRegistrations();
+  const rendered = page.renderRecentXids();
   const nameLinks = nodes(rendered).filter(node => node.selector.startsWith('a') && node.properties.onclick === c.Page.handleLinkClick);
   assert.equal(nameLinks.length, 5);
-  const transactionLinks = nodes(rendered).filter(node => node.selector.startsWith('a') && node.properties.target === '_blank');
-  assert.equal(transactionLinks.length, 5);
+  assert.match(text(rendered), /Latest xIDs/);
+  assert.match(text(rendered), /locally available user data/);
+  assert.match(text(rendered), /Last updated/);
+  assert.doesNotMatch(text(rendered), /Latest registrations|Transaction|Registered/);
   for (let i = 0; i < records.length; i++) {
     const entry = records[i];
     assert.equal(nameLinks[i].properties.href, '?Name:epix:' + entry.name);
     assert.equal(text(nameLinks[i]), entry.name + '.epix');
-    assert.equal(transactionLinks[i].properties.href, '/epix1epxrwflutk4j2saxuy84wvv52tdepuep8yqcqk/?tx=' + entry.txHash);
-    assert.equal(transactionLinks[i].properties.title, entry.txHash);
-    assert.match(transactionLinks[i].properties.rel, /\bnoopener\b/);
-    assert.match(transactionLinks[i].properties['aria-label'], /opens in a new tab/);
     const date = nodes(rendered).find(node => node.selector === 'time' && node.properties.datetime === entry.timestamp);
     assert.ok(date);
     assert.equal(text(date), new Date(entry.timestamp).toLocaleString());
   }
 });
 
-test('the recent list remains bounded to five and supports multiple names in one transaction', async () => {
-  const hash = 'AB'.repeat(32);
-  const c = setup(undefined, async () => Array.from({ length: 7 }, (_, i) => registration(i, { txHash: hash })));
+test('the recent list remains bounded to five and identifies each name with its TLD', async () => {
+  const records = Array.from({ length: 7 }, (_, i) => xid(i, { name: 'same-name', tld: 'tld' + i }));
+  const c = setup(undefined, async () => records);
   const page = new c.StatsPage();
-  await page.fetchRecentRegistrations();
-  assert.equal(page.recentRegistrations.length, 5);
-  const rows = nodes(page.renderRecentRegistrations()).filter(node => node.selector === 'tr' && node.properties.key);
+  await page.fetchRecentXids();
+  assert.equal(page.recentXids.length, 5);
+  const rows = nodes(page.renderRecentXids()).filter(node => node.selector === 'tr' && node.properties.key);
   assert.equal(rows.length, 5);
   assert.equal(new Set(rows.map(row => row.properties.key)).size, 5);
-  assert.ok(rows.every(row => nodes(row).some(node => node.properties.href === c.Chain.explorerTxUrl(hash))));
+  assert.ok(rows.every(row => nodes(row).filter(node => node.selector.startsWith('a')).length === 1));
 });
 
 test('recent loading is announced and duplicate refreshes cannot overlap', async () => {
@@ -260,49 +282,49 @@ test('recent loading is announced and duplicate refreshes cannot overlap', async
   let calls = 0;
   const { StatsPage } = setup(undefined, () => { calls++; return pending.promise; });
   const page = new StatsPage();
-  const request = page.fetchRecentRegistrations();
-  await page.fetchRecentRegistrations();
+  const request = page.fetchRecentXids();
+  await page.fetchRecentXids();
   assert.equal(calls, 1);
-  assert.equal(page.recentRegistrations, null);
-  const recent = page.renderRecentRegistrations();
+  assert.equal(page.recentXids, null);
+  const recent = page.renderRecentXids();
   assert.equal(recent.properties['aria-busy'], 'true');
-  assert.ok(nodes(recent).some(node => node.properties.role === 'status' && /Loading registrations/.test(text(node))));
+  assert.ok(nodes(recent).some(node => node.properties.role === 'status' && /Loading xIDs/.test(text(node))));
   const refresh = nodes(page.render()).find(node => node.selector.startsWith('button') && /Refreshing/.test(text(node)));
   assert.ok(refresh);
   assert.equal(refresh.properties.disabled, true);
-  assert.doesNotMatch(text(recent), /No indexed registrations/);
-  pending.resolve([registration(1)]);
+  assert.doesNotMatch(text(recent), /No xIDs are available/);
+  pending.resolve([xid(1)]);
   await request;
   assert.equal(page.recentLoading, false);
-  assert.equal(page.renderRecentRegistrations().properties['aria-busy'], 'false');
+  assert.equal(page.renderRecentXids().properties['aria-busy'], 'false');
 });
 
 test('recent failures leave chain totals available and offer a separate native retry', async () => {
   let calls = 0;
   const { StatsPage } = setup(undefined, async () => {
-    if (++calls === 1) throw new Error('transaction indexing unavailable');
-    return [registration(1)];
+    if (++calls === 1) throw new Error('user data unavailable');
+    return [xid(1)];
   });
   const page = new StatsPage();
   page.enter(); await flush();
   assert.equal(page.stats.totalNames, 4n);
   assert.equal(page.error, '');
-  assert.equal(page.recentRegistrations, null);
+  assert.equal(page.recentXids, null);
   assert.equal(page.recentLoading, false);
-  const recent = page.renderRecentRegistrations();
+  const recent = page.renderRecentXids();
   assert.ok(nodes(recent).some(node => node.properties.role === 'alert'));
-  assert.doesNotMatch(text(recent), /No indexed registrations/);
-  const retry = nodes(recent).find(node => node.selector.startsWith('button') && text(node) === 'Retry registrations');
+  assert.doesNotMatch(text(recent), /No xIDs are available/);
+  const retry = nodes(recent).find(node => node.selector.startsWith('button') && text(node) === 'Retry xIDs');
   assert.ok(retry);
   assert.equal(retry.properties.type, 'button');
   await retry.properties.onclick();
   assert.equal(calls, 2);
   assert.equal(page.recentError, '');
-  assert.equal(page.recentRegistrations[0].name, 'person-1');
+  assert.equal(page.recentXids[0].name, 'person-1');
 });
 
-test('recent registrations still load when chain counters fail', async () => {
-  const { StatsPage } = setup(async () => { throw new Error('stats unavailable'); }, async () => [registration(2)]);
+test('recent xIDs still load when chain counters fail', async () => {
+  const { StatsPage } = setup(async () => { throw new Error('stats unavailable'); }, async () => [xid(2)]);
   const page = new StatsPage();
   page.handleRefresh(); await flush();
   assert.equal(page.stats, null);
@@ -315,35 +337,249 @@ test('a failed recent refresh retains the list and its successful timestamp unti
   let calls = 0;
   const pending = deferred();
   const { StatsPage } = setup(undefined, async () => {
-    if (++calls === 1) return [registration(1)];
+    if (++calls === 1) return [xid(1)];
     if (calls === 2) return pending.promise;
-    return [registration(3)];
+    return [xid(3)];
   });
   const page = new StatsPage();
-  await page.fetchRecentRegistrations();
-  const records = page.recentRegistrations, refreshedAt = page.recentRefreshedAt;
-  const refresh = page.fetchRecentRegistrations();
-  assert.match(text(page.renderRecentRegistrations()), /Refreshing registrations/);
-  assert.match(text(page.renderRecentRegistrations()), /person-1\.epix/);
+  await page.fetchRecentXids();
+  const records = page.recentXids, refreshedAt = page.recentRefreshedAt;
+  const refresh = page.fetchRecentXids();
+  assert.match(text(page.renderRecentXids()), /Refreshing xIDs/);
+  assert.match(text(page.renderRecentXids()), /person-1\.epix/);
   pending.reject(new Error('offline'));
   await refresh;
-  assert.equal(page.recentRegistrations, records);
+  assert.equal(page.recentXids, records);
   assert.equal(page.recentRefreshedAt, refreshedAt);
   assert.match(page.recentError, /last successful list/);
-  assert.match(text(page.renderRecentRegistrations()), /person-1\.epix/);
-  await page.fetchRecentRegistrations();
+  assert.match(text(page.renderRecentXids()), /person-1\.epix/);
+  await page.fetchRecentXids();
   assert.equal(page.recentError, '');
-  assert.equal(page.recentRegistrations[0].name, 'person-3');
+  assert.equal(page.recentXids[0].name, 'person-3');
   assert.notEqual(page.recentRefreshedAt, refreshedAt);
 });
 
-test('an empty transaction index is shown only after a successful response', async () => {
+test('an empty local directory is shown only after a successful response', async () => {
   const { StatsPage } = setup();
   const page = new StatsPage();
-  assert.doesNotMatch(text(page.renderRecentRegistrations()), /No indexed registrations/);
-  await page.fetchRecentRegistrations();
-  assert.match(text(page.renderRecentRegistrations()), /No indexed registrations are available from this node yet/);
+  assert.doesNotMatch(text(page.renderRecentXids()), /No xIDs are available/);
+  await page.fetchRecentXids();
+  assert.match(text(page.renderRecentXids()), /No xIDs are available in the local user data yet/);
   assert.equal(page.recentError, '');
   assert.ok(page.recentRefreshedAt instanceof Date);
-  assert.equal(nodes(page.renderRecentRegistrations()).filter(node => node.selector.startsWith('table')).length, 0);
+  assert.equal(nodes(page.renderRecentXids()).filter(node => node.selector.startsWith('table')).length, 0);
+});
+
+
+test('standalone mode explains how to see xIDs without requesting wrapper data', async () => {
+  let calls = 0;
+  const { StatsPage } = setup(undefined, async () => { calls++; return [xid(1)]; }, false);
+  const page = new StatsPage();
+  page.enter(); await flush();
+  await page.fetchRecentXids();
+  assert.equal(calls, 0);
+  assert.equal(page.recentLoading, false);
+  assert.equal(page.recentXids, null);
+  assert.equal(page.recentRefreshedAt, null);
+  assert.equal(page.stats.totalNames, 4n);
+  const recent = page.renderRecentXids();
+  assert.equal(recent.properties['aria-busy'], 'false');
+  assert.match(text(recent), /Open this xite in EpixNet to see recent xIDs/);
+  assert.doesNotMatch(text(recent), /Loading xIDs|No xIDs are available|Retry xIDs/);
+  assert.equal(nodes(recent).filter(node => node.selector.startsWith('table')).length, 0);
+});
+
+
+test('user data file events and completed updates refresh only the recent xID list', async () => {
+  let statsCalls = 0, recentCalls = 0;
+  const c = setup(async () => { statsCalls++; return { ok: true, data: snapshot() }; }, async () => [xid(++recentCalls)]);
+  const page = new c.StatsPage();
+  page.onSiteInfo({ event: ['updated'] });
+  page.onReconnect();
+  assert.equal(c.clock.timers.size, 0, 'an inactive page must not schedule refreshes');
+  page.enter(); await flush();
+  assert.equal(page.active, true);
+  assert.equal(statsCalls, 1);
+  assert.equal(recentCalls, 1);
+  const events = [
+    ['file_done', 'data/users/person.epix/content.json'],
+    ['file_done', 'data/users/person.epix/data.json'],
+    ['file_done', 'data/users/person.epix/data-auth123.json'],
+    ['updated']
+  ];
+  for (const [index, event] of events.entries()) {
+    page.onSiteInfo({ event });
+    assert.equal(c.clock.timers.size, 1, event.join(':'));
+    c.clock.advance(249);
+    assert.equal(recentCalls, index + 1, 'refresh must wait for its coalescing delay');
+    c.clock.advance(1); await flush();
+    assert.equal(recentCalls, index + 2);
+    assert.equal(c.clock.timers.size, 0);
+  }
+  assert.equal(statsCalls, 1, 'local data changes must not refetch chain counters');
+});
+
+test('unrelated or malformed site notifications do not refresh xIDs', async () => {
+  let calls = 0;
+  const c = setup(undefined, async () => { calls++; return []; });
+  const page = new c.StatsPage();
+  page.enter(); await flush();
+  for (const info of [
+    null, {}, { event: 'updated' }, { event: [] },
+    { event: ['file_done'] }, { event: ['file_done', {}] },
+    { event: ['file_started', 'data/users/person.epix/data.json'] },
+    { event: ['file_done', 'data/users/person.epix/profile.json'] },
+    { event: ['file_done', 'data/users/person.epix/data.json.backup'] },
+    { event: ['file_done', 'data/users/person.epix/subdir/data.json'] },
+    { event: ['file_done', 'data/users/content.json'] },
+    { event: ['file_done', 'data/other/person.epix/data.json'] },
+    { event: ['file_done', 'content.json'] }
+  ]) page.onSiteInfo(info);
+  assert.equal(c.clock.timers.size, 0);
+  c.clock.advance(1000); await flush();
+  assert.equal(calls, 1);
+});
+
+test('publication bursts and reconnect notifications coalesce into one delayed refresh', async () => {
+  let calls = 0;
+  const c = setup(undefined, async () => [xid(++calls)]);
+  const page = new c.StatsPage();
+  page.enter(); await flush();
+  page.onSiteInfo({ event: ['file_done', 'data/users/person.epix/data.json'] });
+  const timer = page.recentRefreshTimer;
+  page.onSiteInfo({ event: ['file_done', 'data/users/person.epix/content.json'] });
+  page.onSiteInfo({ event: ['updated'] });
+  page.onReconnect();
+  assert.equal(c.clock.timers.size, 1);
+  assert.equal(page.recentRefreshTimer, timer);
+  c.clock.advance(250); await flush();
+  assert.equal(calls, 2);
+  assert.equal(page.recentXids[0].name, 'person-2');
+  page.onReconnect();
+  assert.equal(c.clock.timers.size, 1);
+  c.clock.advance(250); await flush();
+  assert.equal(calls, 3);
+});
+
+test('events arriving during a directory request queue exactly one follow-up refresh', async () => {
+  const pending = deferred();
+  let calls = 0;
+  const c = setup(undefined, () => ++calls === 1 ? pending.promise : Promise.resolve([xid(calls)]));
+  const page = new c.StatsPage();
+  page.enter();
+  page.onSiteInfo({ event: ['file_done', 'data/users/person.epix/data.json'] });
+  page.onSiteInfo({ event: ['updated'] });
+  page.onReconnect();
+  assert.equal(page.recentRefreshQueued, true);
+  assert.equal(c.clock.timers.size, 0);
+  assert.equal(calls, 1);
+  pending.resolve([xid(1)]); await flush();
+  assert.equal(page.recentRefreshQueued, false);
+  assert.equal(c.clock.timers.size, 1);
+  c.clock.advance(250); await flush();
+  assert.equal(calls, 2);
+  assert.equal(page.recentXids[0].name, 'person-2');
+  assert.equal(c.clock.timers.size, 0);
+});
+
+test('a failed automatic refresh keeps the snapshot and processes a queued update', async () => {
+  const pending = deferred();
+  let calls = 0;
+  const c = setup(undefined, () => ++calls === 2 ? pending.promise : Promise.resolve([xid(calls)]));
+  const page = new c.StatsPage();
+  page.enter(); await flush();
+  const previous = page.recentXids, refreshedAt = page.recentRefreshedAt;
+  page.onSiteInfo({ event: ['updated'] });
+  c.clock.advance(250);
+  page.onSiteInfo({ event: ['updated'] });
+  pending.reject(new Error('directory unavailable')); await flush();
+  assert.equal(page.recentXids, previous);
+  assert.equal(page.recentRefreshedAt, refreshedAt);
+  assert.match(page.recentError, /last successful list/);
+  assert.equal(c.clock.timers.size, 1);
+  c.clock.advance(250); await flush();
+  assert.equal(calls, 3);
+  assert.equal(page.recentXids[0].name, 'person-3');
+  assert.equal(page.recentError, '');
+});
+
+test('leaving cancels delayed refreshes and ignores updates until the page is entered again', async () => {
+  let calls = 0;
+  const c = setup(undefined, async () => [xid(++calls)]);
+  const page = new c.StatsPage();
+  page.enter(); await flush();
+  page.onReconnect();
+  assert.equal(c.clock.timers.size, 1);
+  page.leave();
+  assert.equal(page.active, false);
+  assert.equal(page.recentRefreshTimer, null);
+  assert.equal(c.clock.timers.size, 0);
+  page.onSiteInfo({ event: ['updated'] });
+  page.onReconnect();
+  c.clock.advance(1000); await flush();
+  assert.equal(calls, 1);
+  page.enter(); await flush();
+  assert.equal(page.active, true);
+  assert.equal(calls, 2);
+});
+
+test('leaving during a directory request drops its queued automatic refresh', async () => {
+  const pending = deferred();
+  let calls = 0;
+  const c = setup(undefined, () => { calls++; return pending.promise; });
+  const page = new c.StatsPage();
+  page.enter();
+  page.onSiteInfo({ event: ['updated'] });
+  assert.equal(page.recentRefreshQueued, true);
+  page.leave();
+  assert.equal(page.recentRefreshQueued, false);
+  pending.resolve([xid(1)]); await flush();
+  assert.equal(c.clock.timers.size, 0);
+  c.clock.advance(1000); await flush();
+  assert.equal(calls, 1);
+});
+
+test('re-entering during an old request schedules a fresh query after it completes', async () => {
+  const pending = deferred();
+  let calls = 0;
+  const c = setup(undefined, () => ++calls === 1 ? pending.promise : Promise.resolve([xid(calls)]));
+  const page = new c.StatsPage();
+  page.enter();
+  page.leave();
+  page.enter();
+  assert.equal(calls, 1);
+  assert.equal(page.recentRefreshQueued, true);
+  pending.resolve([xid(1)]); await flush();
+  assert.equal(c.clock.timers.size, 1);
+  c.clock.advance(250); await flush();
+  assert.equal(calls, 2);
+  assert.equal(page.recentXids[0].name, 'person-2');
+});
+
+test('manual refresh consumes a pending automatic refresh without duplicating requests', async () => {
+  let calls = 0;
+  const c = setup(undefined, async () => [xid(++calls)]);
+  const page = new c.StatsPage();
+  page.enter(); await flush();
+  page.onReconnect();
+  assert.equal(c.clock.timers.size, 1);
+  page.handleRefresh(); await flush();
+  assert.equal(calls, 2);
+  assert.equal(c.clock.timers.size, 0);
+  c.clock.advance(1000); await flush();
+  assert.equal(calls, 2);
+});
+
+test('standalone mode never schedules directory refreshes for updates or reconnects', async () => {
+  let calls = 0;
+  const c = setup(undefined, async () => { calls++; return []; }, false);
+  const page = new c.StatsPage();
+  page.enter(); await flush();
+  page.onSiteInfo({ event: ['file_done', 'data/users/person.epix/data.json'] });
+  page.onSiteInfo({ event: ['updated'] });
+  page.onReconnect();
+  assert.equal(c.clock.timers.size, 0);
+  assert.equal(page.recentRefreshQueued, false);
+  c.clock.advance(1000); await flush();
+  assert.equal(calls, 0);
 });

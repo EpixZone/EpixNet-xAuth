@@ -165,10 +165,20 @@
       this.render();
     }
 
+    onOpenWebsocket() {
+      var self = this;
+      this.cmd("siteInfo", {}, function (site_info) {
+        self.site_info = site_info;
+        if (self.content && self.content.onReconnect) self.content.onReconnect();
+        self.render();
+      });
+    }
+
     onRequest(cmd, message) {
       var params = message.params;
       if (cmd === "setSiteInfo") {
         this.site_info = params;
+        if (this.content && this.content.onSiteInfo) this.content.onSiteInfo(params);
         this.render();
       } else if (cmd === "wrapperPopState") {
         var state = params && params.state;
@@ -177,9 +187,6 @@
         this.history_state.url = url;
         this.route(url);
         if (state && state.scrollTop) window.scrollTo(0, state.scrollTop);
-      } else if (cmd === "wrapperOpenedWebsocket") {
-        var self = this;
-        this.cmd("siteInfo", {}, function (site_info) { self.site_info = site_info; self.render(); });
       } else if (this.isEmbedded) {
         this.log("Unknown command", cmd);
       }
