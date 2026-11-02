@@ -10,10 +10,11 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 
 // Reopen the same wrapper storage in a fresh inner frame. Only a processed
 // thumbnail should cross that boundary; the on-chain source remains a URL.
-function open(storage = { state: { other: 'keep' } }, time = Date.now()) {
+function open(storage = { state: { other: 'keep' } }, time = Date.now(), shared = async () => null) {
   const samples = [], filters = [];
   const context = {
     h: (selector, props) => props, URL, setTimeout, clearTimeout, Date: { now: () => time },
+    EpixAvatar: { get: shared },
     document: {
       baseURI: 'https://xid.content.epix/',
       createElement: () => ({
@@ -47,11 +48,11 @@ function open(storage = { state: { other: 'keep' } }, time = Date.now()) {
   return { props, mount, samples, filters };
 }
 
-test('request the CSS size for numbered and legacy Gravatar URLs, preserving other parameters', () => {
-  const hash = '0123456789abcdef'.repeat(2), { props } = open();
+test('request the CSS size for numbered and legacy Gravatar URLs, preserving other parameters', async () => {
+  const hash = '0123456789abcdef'.repeat(2), { mount } = open();
   for (const host of ['2.gravatar.com', 'www.gravatar.com', 'gravatar.com', 'secure.gravatar.com']) {
     const original = `https://${host}/avatar/${hash}.jpg?size=2048&s=1024&s=512&r=pg&d=https%3A%2F%2Fexample.org%2Fpic.png`;
-    const result = new URL(props(original)['data-avatar-url']);
+    const result = new URL((await mount(original)).src);
     assert.equal(result.hostname, host);
     assert.deepEqual(result.searchParams.getAll('s'), ['56']);
     assert.equal(result.searchParams.has('size'), false);
@@ -59,8 +60,22 @@ test('request the CSS size for numbered and legacy Gravatar URLs, preserving oth
     assert.equal(result.searchParams.get('d'), 'https://example.org/pic.png');
   }
   for (const url of [`https://gravatar.com.example/avatar/${hash}?s=256`, 'https://gravatar.com/account?size=256', `https://example.com/avatar/${hash}`]) {
-    assert.equal(props(url)['data-avatar-url'], url);
+    assert.equal((await mount(url)).src, url);
   }
+});
+
+test('shared thumbnails use the original profile URL and avoid per-xite storage on a hit', async () => {
+  const source = 'https://2.gravatar.com/avatar/' + 'a'.repeat(64) + '?size=2048';
+  const storage = { get state() { throw new Error('unexpected per-xite read'); } };
+  const requests = [];
+  const frame = open(storage, Date.now(), async (url, size, page) => {
+    requests.push([url, size, page.isEmbedded]);
+    return png;
+  });
+  const image = await frame.mount(source);
+  assert.equal(image.src, png);
+  assert.deepEqual(requests, [[source, 56, true]]);
+  assert.equal(image.crossOrigin, undefined);
 });
 
 test('a large panorama is center-cropped into a bounded raster, filtered, and reused by new frames until it expires', async () => {
