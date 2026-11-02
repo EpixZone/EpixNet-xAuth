@@ -41,7 +41,7 @@ function setup() {
   };
   c.window = c;
   vm.createContext(c);
-  for (const file of ['lib/marked.min.js', 'utils/Text.js', 'utils/Bech32.js', 'utils/Format.js', 'utils/ProfileMarkdown.js', 'utils/ProfileEditor.js', 'wallet/TxState.js', 'pages/NameDetailPage.js']) {
+  for (const file of ['lib/marked.min.js', 'utils/Text.js', 'utils/Bech32.js', 'utils/Format.js', 'utils/ProfileMarkdown.js', 'utils/ProfileEditor.js', 'utils/ProfileAvatar.js', 'wallet/TxState.js', 'pages/NameDetailPage.js']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../js', file), 'utf8'), c, { filename: file });
   }
   const page = new c.NameDetailPage();

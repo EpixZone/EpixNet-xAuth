@@ -38,6 +38,14 @@ Address: `epix1xauthduuyn63k6kj54jzgp4l8nnjlhrsyaku8c`
 ### Profiles
 
 - Avatar URL and bio per name, stored on-chain through the xID precompile
+- Search and profile views request 56px Gravatars for their 56px image slots.
+  For other readable images, xID downloads the source once to create a square
+  thumbnail with a center crop and Lanczos3 filtering. Each browser caches up
+  to 32 PNG thumbnails for one day. Changing the URL selects a new image.
+  If a host refuses cross-origin image access, xID retries with an ordinary
+  image request and remembers to use that host's original image for that URL.
+  [Gravatar sizing](https://docs.gravatar.com/sdk/images/#size),
+  [vendored Pica 10.0.3 (MIT)](https://github.com/nodeca/pica/tree/10.0.3)
 - Markdown bio editor with Bold, Italic, Heading, List, Quote, Code and Link
   controls, keyboard shortcuts, and a Write/Preview toggle
 - Preview, saved profiles and search results use the same formatted display

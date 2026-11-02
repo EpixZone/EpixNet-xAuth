@@ -1,9 +1,6 @@
 // Name detail: owner and primary status, profile, linked identities with the
 // content root, DNS records, and (owner only) transfer.
 (function () {
-  // Stable handlers: maquette forbids a new function per render.
-  function hideBroken(e) { e.target.style.display = "none"; }
-
   function txLine(prefix, tx) {
     if (!tx.hash) return null;
     return h("p.tx-line", [
@@ -203,7 +200,7 @@
       } else {
         body = h("div.row-gap", { style: "gap:16px" }, [
           page.avatar
-            ? h("img.avatar", { src: page.avatar, alt: "avatar", referrerpolicy: "no-referrer", loading: "lazy", onerror: hideBroken })
+            ? ProfileAvatar.render(page.avatar, "avatar")
             : h("div.avatar-empty", "?"),
           h("div.profile-bio", [
             page.profileLoading ? h("p.mid", { role: "status" }, "Loading profile...")

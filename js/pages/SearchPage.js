@@ -1,6 +1,5 @@
 // Search by name, wallet owner, or linked EpixNet identity.
 (function () {
-  function hideBroken(e) { e.target.style.display = "none"; }
   function errorMessage(error, fallback) {
     return (window.TxErrors && TxErrors.extract(error)) || fallback;
   }
@@ -86,7 +85,7 @@
       }
       return h("div.lookup-result.stack-sm", { key: "registered" }, [
         h("div.row-between", [h("h2.result-title", fullName), h("span.pill.pill-accent", "Registered")]),
-        r.avatar ? h("img.avatar", { src: r.avatar, alt: fullName + " profile", referrerpolicy: "no-referrer", loading: "lazy", onerror: hideBroken }) : null,
+        r.avatar ? ProfileAvatar.render(r.avatar, fullName + " profile") : null,
         r.bio ? ProfileMarkdown.render(r.bio, "search-bio") : null,
         h("div.kv", [h("span.k", "Wallet (EVM)"), h("span.v.mono", r.owner)]),
         h("div.kv", [h("span.k", "Wallet (Epix)"), h("span.v.mono", Bech32.evmToBech32(r.owner))]),
