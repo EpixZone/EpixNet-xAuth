@@ -50,7 +50,7 @@ function setup(overrides = {}) {
   };
   context.window = context;
   vm.createContext(context);
-  for (const file of ['utils/Text.js', 'utils/Bech32.js', 'pages/SearchPage.js', 'pages/RegisterPage.js', 'pages/PricesPage.js']) {
+  for (const file of ['utils/Text.js', 'utils/Bech32.js', 'utils/ProfileAvatar.js', 'pages/SearchPage.js', 'pages/RegisterPage.js', 'pages/PricesPage.js']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../js', file), 'utf8'), context, { filename: file });
   }
   return { c: context, calls, timers };
