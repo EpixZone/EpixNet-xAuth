@@ -93,7 +93,8 @@
   }
 
   async function mount(image) {
-    var url = image.getAttribute("data-avatar-url");
+    var source = image.getAttribute("data-avatar-url");
+    var url = displayUrl(source);
     if (!loading) loading = readCache();
     await loading;
     if (!image.isConnected) return;
@@ -113,6 +114,15 @@
       image.src = cached.png;
       return;
     }
+    if (Page.isEmbedded) {
+      var shared = await EpixAvatar.get(source, SIZE, Page);
+      if (!image.isConnected) return;
+      if (shared) {
+        image.onerror = original;
+        image.src = shared;
+        return;
+      }
+    }
     image.crossOrigin = "anonymous";
     image.onerror = original;
     image.onload = async function () {
@@ -128,8 +138,7 @@
 
   window.ProfileAvatar = {
     render: function (source, alt) {
-      var url = displayUrl(source);
-      return h("img.avatar", { key: url, "data-avatar-url": url, alt: alt, referrerpolicy: "no-referrer", loading: "lazy", afterCreate: mount });
+      return h("img.avatar", { key: source, "data-avatar-url": source, alt: alt, referrerpolicy: "no-referrer", loading: "lazy", afterCreate: mount });
     }
   };
 })();
