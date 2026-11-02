@@ -92,7 +92,9 @@
     return result.toDataURL("image/png");
   }
 
-  async function loadLocalAvatar(image, url) {
+  async function mount(image) {
+    var source = image.getAttribute("data-avatar-url");
+    var url = displayUrl(source);
     if (!loading) loading = readCache();
     await loading;
     if (!image.isConnected) return;
@@ -112,6 +114,15 @@
       image.src = cached.png;
       return;
     }
+    if (Page.isEmbedded) {
+      var shared = await EpixAvatar.get(source, SIZE, Page);
+      if (!image.isConnected) return;
+      if (shared) {
+        image.onerror = original;
+        image.src = shared;
+        return;
+      }
+    }
     image.crossOrigin = "anonymous";
     image.onerror = original;
     image.onload = async function () {
@@ -123,21 +134,6 @@
       } catch (_) { /* Keep the already displayed image if it cannot be resized. */ }
     };
     image.src = url;
-  }
-
-  async function mount(image) {
-    var source = image.getAttribute("data-avatar-url");
-    var url = displayUrl(source);
-    if (Page.isEmbedded) {
-      var shared = await EpixAvatar.get(source, SIZE, Page);
-      if (!image.isConnected) return;
-      if (shared) {
-        image.onerror = function () { loadLocalAvatar(image, url); };
-        image.src = shared;
-        return;
-      }
-    }
-    return loadLocalAvatar(image, url);
   }
 
   window.ProfileAvatar = {

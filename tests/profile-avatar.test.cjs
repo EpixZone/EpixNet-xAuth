@@ -64,9 +64,9 @@ test('request the CSS size for numbered and legacy Gravatar URLs, preserving oth
   }
 });
 
-test('shared thumbnails use the original profile URL and avoid per-xite storage on a hit', async () => {
+test('a shared cache hit uses the original profile URL and avoids a local image download and resize', async () => {
   const source = 'https://2.gravatar.com/avatar/' + 'a'.repeat(64) + '?size=2048';
-  const storage = { get state() { throw new Error('unexpected per-xite read'); } };
+  const storage = { state: { other: 'keep' } };
   const requests = [];
   const frame = open(storage, Date.now(), async (url, size, page) => {
     requests.push([url, size, page.isEmbedded]);
@@ -76,6 +76,18 @@ test('shared thumbnails use the original profile URL and avoid per-xite storage 
   assert.equal(image.src, png);
   assert.deepEqual(requests, [[source, 56, true]]);
   assert.equal(image.crossOrigin, undefined);
+  assert.equal(frame.samples.length, 0);
+  assert.deepEqual(storage.state, { other: 'keep' });
+});
+
+test('existing local thumbnails and remembered display-only origins do not cause a shared fetch on upgrade', async () => {
+  const source = 'https://example.org/avatar';
+  for (const local of [png, null]) {
+    const storage = { state: { 'xid.avatar-thumbnails.v1': [{ url: source, png: local, expires: Date.now() + 60000 }] } };
+    const frame = open(storage, Date.now(), () => { throw new Error('unexpected shared lookup'); });
+    const image = await frame.mount(source);
+    assert.equal(image.src, local || source);
+  }
 });
 
 test('a large panorama is center-cropped into a bounded raster, filtered, and reused by new frames until it expires', async () => {
