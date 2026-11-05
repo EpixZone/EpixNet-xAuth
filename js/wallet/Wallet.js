@@ -169,6 +169,23 @@
       return false;
     },
 
+    renderHelp: function () {
+      return h("div.wallet-help.stack-sm", [
+        h("h3", "Before you connect"),
+        h("p.small", "Connecting requests your selected public wallet address and the Epix network. xID then reads that address's public balance and owned names. It never requests your recovery phrase or private key."),
+        h("p.small", "Connecting is free and does not send a transaction. Registering a name or linking an identity asks for a separate approval in your wallet. Names, owner addresses and linked identities are public on-chain."),
+        h("details", [
+          h("summary", "Network and costs"),
+          h("div.stack-sm", [
+            h("p.small", "Use an EVM-compatible wallet. xID asks it to switch to Epix (chain ID 1916), or add Epix if it is missing. EPIX is the network's native currency; importing a token is not required. The selected account needs EPIX on Epix to pay for transactions."),
+            h("p.small", "Registration costs the current name-length fee plus a network transaction fee. The name fee is burned and taken directly from your account, so a wallet's transfer amount of zero does not mean registration is free. Linking a name you already own has a network transaction fee, with no new registration charge."),
+            h("p.small", "Check the live name fee before registering and review the network fee in your wallet. Network fees vary; registration and linking are separate transactions."),
+            h("a.text-link.small", { href: "?Prices", target: "_blank", rel: "noopener noreferrer" }, "Preview current registration prices")
+          ])
+        ])
+      ]);
+    },
+
     // The connect button / account chip. opts.compact hides the balance.
     renderButton: function (opts) {
       opts = opts || {};

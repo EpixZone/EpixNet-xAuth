@@ -140,7 +140,8 @@
             Wallet.connectError ? h("p.text-err", { role: "alert" }, Wallet.connectError) : null
           ]) : Wallet.chainOk === false ? h("button.btn.btn-primary.btn-block", { key: "switch", type: "button", onclick: Wallet.handleSwitchClick }, "Switch wallet to Epix") : !(tx.isSuccess && this.registeredName) ? h("button.btn.btn-primary.btn-block", { key: "register", type: "button", onclick: this.handleRegister, disabled: !this.canRegister() }, label) : null,
           tx.errorText ? h("div.msg.msg-err", { key: "tx-error", role: "alert" }, tx.errorText) : null,
-          h("a.text-link.small", { href: "?Prices", onclick: Page.handleLinkClick }, "How registration pricing works")
+          h("a.text-link.small", { href: "?Prices", onclick: Page.handleLinkClick }, "How registration pricing works"),
+          !Wallet.isConnected() ? Wallet.renderHelp() : null
         ])
       ]);
     }

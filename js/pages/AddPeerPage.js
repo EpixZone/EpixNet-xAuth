@@ -454,7 +454,8 @@
         h("div.icon-circle", [Icons.wallet()]),
         h("h2", "Connect your wallet"),
         h("p.mid.centered", "Choose an existing name or register a new one. Your wallet approves the on-chain transactions."),
-        h("div.wizard-wallet", [Wallet.renderButton({ compact: true })])
+        h("div.wizard-wallet", [Wallet.renderButton({ compact: true })]),
+        Wallet.renderHelp()
       ]);
     }
 
