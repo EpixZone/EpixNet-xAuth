@@ -306,6 +306,8 @@ button { font: inherit }
 @keyframes spin { to { transform: rotate(360deg) } }
 .spin-row { display: flex; align-items: center; gap: 8px; color: var(--epix-text-mid) }
 .spin-col { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 48px 0; color: var(--epix-text-mid) }
+.wallet-help { width: 100%; max-width: 580px; text-align: left; line-height: 1.6 }
+.wallet-help summary { cursor: pointer; color: var(--epix-link); margin-bottom: 8px }
 
 .table { width: 100%; border-collapse: collapse }
 .table th { text-align: left; padding: 10px 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--epix-text-low); border-bottom: 1px solid var(--epix-border); background: var(--epix-surface) }
