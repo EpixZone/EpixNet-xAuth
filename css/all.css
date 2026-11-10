@@ -683,14 +683,24 @@ button.btn-primary:disabled:hover { background: var(--epix-accent) }
 .registration-name > .field + .input { margin-top: 0 }
 .registration-name .input {
  width: 100%; min-width: 0; min-height: 54px; padding: 12px 14px;
- border: 1px solid var(--epix-border-strong); border-radius: 10px;
+ border: 1px solid var(--registration-state-color, var(--epix-border-strong)); border-radius: 10px;
  background: var(--epix-surface-2); color: var(--epix-text); font-size: 17px; line-height: 1.5;
 }
 .registration-name .input::placeholder { color: var(--epix-text-low); opacity: 1 }
-.registration-name .input:hover:not(:disabled) { border-color: var(--epix-text-mid) }
-.registration-name .input:focus { border-color: var(--epix-focus); box-shadow: 0 0 0 3px var(--epix-accent-ring) }
+.registration-name .input:hover:not(:disabled) { border-color: var(--registration-state-color, var(--epix-text-mid)) }
+.registration-name .input:focus { border-color: var(--registration-state-color, var(--epix-focus)); box-shadow: 0 0 0 3px var(--registration-state-ring, var(--epix-accent-ring)) }
+.registration-name .input:focus-visible { outline: 2px solid var(--registration-state-color, var(--epix-focus)); outline-offset: 2px }
 .registration-name .input:disabled { opacity: .6; cursor: not-allowed }
-.registration-name .input[aria-invalid="true"] { border-color: var(--epix-danger) }
+.registration-name .input[data-name-state="available"] {
+ --registration-state-color: color-mix(in srgb, var(--epix-success) 65%, var(--epix-text) 35%);
+ --registration-state-ring: color-mix(in srgb, var(--registration-state-color) 25%, transparent);
+}
+.registration-name .input[aria-invalid="true"],
+.registration-name .input[data-name-state="taken"],
+.registration-name .input[data-name-state="invalid"] {
+ --registration-state-color: color-mix(in srgb, var(--epix-danger) 65%, var(--epix-text) 35%);
+ --registration-state-ring: color-mix(in srgb, var(--registration-state-color) 25%, transparent);
+}
 .registration-name .input-row { min-width: 0 }
 .registration-name .suffix-chip { flex: none; padding-inline: 12px; font-size: 14px }
 .registration-name .lookup-hint { margin-top: 8px; font-size: 12px; line-height: 1.6 }

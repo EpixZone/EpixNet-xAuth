@@ -87,6 +87,7 @@
       var network = !connected ? "Check after connecting" : !rightChain ? "Switch to Epix" : cost.loading ? "Estimating..." : cost.networkFee === null ? "Estimate unavailable" : "≈ " + Format.epix(cost.networkFee) + " EPIX";
       var balance = !connected ? "Connect to check" : !rightChain ? "Switch to check" : cost.balanceLoading ? "Checking..." : cost.balance === null ? "Unavailable" : Format.epix(cost.balance) + " EPIX";
       var notice = this.notice(options);
+      var nameState = options.success ? "registered" : options.invalid ? "invalid" : options.resolving ? "checking" : options.available ? "available" : options.taken ? "taken" : "neutral";
       var label = tx.status === "simulating" ? "Checking transaction..." : tx.isPending ? "Confirm in your wallet..." : tx.isConfirming ? "Waiting for confirmation..." : "Register " + (options.name ? options.name + "." + options.tld : "name");
       return h("div.registration-card." + (options.embedded ? "subcard" : "card"), { key: id + "-card" }, [
         options.embedded ? h("h3.registration-intro", "Register a new name") : null,
@@ -96,11 +97,13 @@
             h("input.input", {
               id: id, type: "text", value: options.input, placeholder: "yourname.epix", oninput: options.onInput,
               onkeydown: options.onKeyDown, autocomplete: "off", spellcheck: false, disabled: tx.isBusy,
-              "aria-describedby": id + "-help " + id + "-rules", "aria-invalid": options.invalid ? "true" : "false"
+              "data-name-state": nameState,
+              "aria-describedby": id + "-help " + id + "-rules " + id + "-status",
+              "aria-invalid": nameState === "invalid" || nameState === "taken" ? "true" : "false"
             }),
             h("p.small.mid", { id: id + "-help" }, "A public name for you or your project. It does not need to be your real name."),
             h("p.small.dim", { id: id + "-rules" }, "1–64 letters, numbers, or internal hyphens. Full .epix names are accepted."),
-            h("div.registration-status.stack-sm", { "aria-live": "polite", "aria-busy": options.resolving ? "true" : "false" }, [options.status]),
+            h("div.registration-status.stack-sm", { id: id + "-status", "aria-live": "polite", "aria-busy": options.resolving ? "true" : "false" }, [options.status]),
             h("p.small.mid", "One registration, no renewals. Registering a name does not create a website."),
             h("details.registration-purpose", [
               h("summary", "What can I use this name for?"),

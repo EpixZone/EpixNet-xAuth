@@ -166,6 +166,7 @@
           id: "register-name", input: this.input, name: this.name, tld: Chain.DEFAULT_TLD,
           onInput: this.handleInput, onKeyDown: this.handleKey, invalid: !!this.validation,
           tx: this.tx, fee: this.fee, resolving: this.resolving, available: this.isAvailable,
+          taken: this.owner !== null && !this.isAvailable,
           status: this.renderStatus(), success: this.tx.isSuccess && !!this.registeredName,
           canRegister: this.canRegister(), onRegister: this.handleRegister, onRefresh: this.handleRefresh
         })

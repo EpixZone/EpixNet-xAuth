@@ -518,6 +518,7 @@
         id: "wizard-name", embedded: true, linking: true, input: this.newName, name: input.name, tld: input.tld,
         onInput: this.handleNewNameInput, onKeyDown: this.handleNameKey, invalid: !!this.newName && !input.valid,
         tx: this.registerTx, fee: this.fee, resolving: this.resolving, available: this.isAvailable,
+        taken: !!this.lookupName && !this.isAvailable && !this.lookupError,
         status: status, canRegister: this.canRegister(), onRegister: this.handleRegister,
         onRefresh: this.handleRefresh, tiers: this.renderTiers()
       });
