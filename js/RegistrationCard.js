@@ -101,7 +101,7 @@
               "aria-describedby": id + "-help " + id + "-rules " + id + "-status",
               "aria-invalid": nameState === "invalid" || nameState === "taken" ? "true" : "false"
             }),
-            h("p.small.mid", { id: id + "-help" }, "A public name for you or your project. It does not need to be your real name."),
+            h("p.small.mid", { id: id + "-help" }, "Your public display name"),
             h("p.small.dim", { id: id + "-rules" }, "1–64 letters, numbers, or internal hyphens. Full .epix names are accepted."),
             h("div.registration-status.stack-sm", { id: id + "-status", "aria-live": "polite", "aria-busy": options.resolving ? "true" : "false" }, [options.status]),
             h("p.small.mid", "One registration, no renewals. Registering a name does not create a website."),
