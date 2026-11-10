@@ -483,15 +483,14 @@ button.btn:disabled:hover { background: var(--epix-surface-2) }
 button.btn-primary:disabled:hover { background: var(--epix-accent) }
 .input, .select { min-height: 44px; font-size: 15px }
 .input-mono { font-size: 13px }
-.RegisterPage #register-name, .SearchPage .input {
+.SearchPage .input {
  min-height: 56px; padding: 0 16px; border: 2px solid var(--epix-text-low);
  background: var(--epix-surface-2); font-size: 18px; border-radius: 10px;
 }
 .SearchPage .input-mono { font-size: 16px }
-.RegisterPage #register-name::placeholder, .SearchPage .input::placeholder { color: var(--epix-text-mid); opacity: 1 }
-.RegisterPage #register-name:hover:not(:disabled), .SearchPage .input:hover { border-color: var(--epix-text-mid) }
-.RegisterPage #register-name:focus, .SearchPage .input:focus { border-color: var(--epix-focus); box-shadow: 0 0 0 4px var(--epix-accent-ring) }
-.RegisterPage #register-name:disabled { opacity: .6; cursor: not-allowed }
+.SearchPage .input::placeholder { color: var(--epix-text-mid); opacity: 1 }
+.SearchPage .input:hover { border-color: var(--epix-text-mid) }
+.SearchPage .input:focus { border-color: var(--epix-focus); box-shadow: 0 0 0 4px var(--epix-accent-ring) }
 .suffix-chip { min-height: 44px; display: inline-flex; align-items: center }
 .btn-link { font: inherit }
 .field { font-weight: 600 }
@@ -665,4 +664,80 @@ button.btn-primary:disabled:hover { background: var(--epix-accent) }
  .profile-editor-footer { align-items: flex-start }
  .profile-byte-count { margin-left: 0 }
  .profile-link-form { padding: 12px }
+}
+
+/* Registration keeps the name, live price and wallet state in one card. */
+.main.wizard:has(.AddPeerPage.registration-step) { max-width: 880px }
+.registration-card { min-width: 0; container: registration / inline-size }
+.registration-card.card { padding: 28px; border-radius: var(--radius-xl) }
+.registration-card.subcard { padding: 0; background: transparent; border-radius: 0 }
+.registration-card > .registration-intro { margin-bottom: 20px }
+.registration-card .btn { min-height: 44px }
+.registration-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start }
+.registration-name, .registration-cost { min-width: 0; overflow-wrap: anywhere }
+.registration-cost { border-top: 1px solid var(--epix-border); padding-top: 24px }
+.registration-cost > h2, .registration-cost > h3 { color: var(--epix-text); font-size: 15px; font-weight: 600 }
+.registration-cost > .text-link { display: block; width: fit-content; max-width: 100% }
+.registration-intro { color: var(--epix-text-mid); font-size: 14px; line-height: 1.65; max-width: 65ch }
+.registration-name .field { margin-bottom: 8px; color: var(--epix-text); font-size: 14px }
+.registration-name > .field + .input { margin-top: 0 }
+.registration-name .input {
+ width: 100%; min-width: 0; min-height: 54px; padding: 12px 14px;
+ border: 1px solid var(--epix-border-strong); border-radius: 10px;
+ background: var(--epix-surface-2); color: var(--epix-text); font-size: 17px; line-height: 1.5;
+}
+.registration-name .input::placeholder { color: var(--epix-text-low); opacity: 1 }
+.registration-name .input:hover:not(:disabled) { border-color: var(--epix-text-mid) }
+.registration-name .input:focus { border-color: var(--epix-focus); box-shadow: 0 0 0 3px var(--epix-accent-ring) }
+.registration-name .input:disabled { opacity: .6; cursor: not-allowed }
+.registration-name .input[aria-invalid="true"] { border-color: var(--epix-danger) }
+.registration-name .input-row { min-width: 0 }
+.registration-name .suffix-chip { flex: none; padding-inline: 12px; font-size: 14px }
+.registration-name .lookup-hint { margin-top: 8px; font-size: 12px; line-height: 1.6 }
+.registration-status { min-width: 0; color: var(--epix-text-mid); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere }
+.registration-status:empty { display: none }
+.registration-status .lookup-result { margin-top: 0; padding: 14px }
+.registration-status .result-title { font-size: 18px }
+.registration-status .row-between { flex-wrap: wrap; gap: 8px 12px }
+.registration-fees { display: grid; gap: 12px; margin: 0 }
+.registration-cost > .registration-fees { margin-top: 16px }
+.registration-fees > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: baseline; gap: 8px 16px }
+.registration-fees dt { min-width: 0; color: var(--epix-text-mid); font-size: 12px; line-height: 1.6 }
+.registration-fees dd { min-width: 0; margin: 0; color: var(--epix-text); font-size: 13px; line-height: 1.6; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere }
+.registration-fees dd strong { font-weight: 600 }
+.registration-fees .registration-fee { font-size: 14px; font-weight: 600 }
+.registration-fees > div:last-child { margin-top: 2px; padding-top: 14px; border-top: 1px solid var(--epix-border) }
+.registration-notice.msg { display: grid; gap: 5px; padding: 15px 16px; border: 1px solid transparent; border-radius: 10px; color: var(--epix-text); line-height: 1.6 }
+.registration-notice.msg-warn { background: color-mix(in srgb, var(--epix-warning) 10%, var(--epix-surface)); border-color: color-mix(in srgb, var(--epix-warning) 25%, var(--epix-border)) }
+.registration-notice.msg-ok { background: color-mix(in srgb, var(--epix-success) 10%, var(--epix-surface)); border-color: color-mix(in srgb, var(--epix-success) 25%, var(--epix-border)) }
+.registration-notice strong { font-weight: 600 }
+.registration-notice p { font-size: 12px }
+.registration-notice > * + * { margin-top: 0 }
+.registration-actions.row-gap { align-items: stretch; gap: 8px }
+.registration-actions .btn { flex: 1 1 140px; min-width: 0; max-width: 100%; min-height: 44px; white-space: normal; overflow-wrap: anywhere; line-height: 1.4 }
+.registration-help, .registration-purpose, .registration-error { min-width: 0; color: var(--epix-text-mid); font-size: 12px; line-height: 1.65; overflow-wrap: anywhere }
+.registration-error.msg { border: 1px solid color-mix(in srgb, var(--epix-danger) 25%, var(--epix-border)); background: color-mix(in srgb, var(--epix-danger) 10%, var(--epix-surface)); color: var(--epix-text) }
+.registration-help > summary, .registration-purpose > summary, .registration-error > summary, .registration-error details > summary { width: fit-content; max-width: 100%; min-height: 36px; padding: 8px 0; color: var(--epix-link); cursor: pointer }
+.registration-help[open] > summary, .registration-purpose[open] > summary, .registration-error[open] > summary { margin-bottom: 4px }
+.registration-help > p + p, .registration-purpose > p + p { margin-top: 8px }
+.registration-help ul, .registration-purpose ul { margin: 8px 0 0; padding-left: 20px }
+.registration-help li + li, .registration-purpose li + li { margin-top: 6px }
+.registration-funding { padding-top: 18px; border-top: 1px solid var(--epix-border); color: var(--epix-text-mid); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere }
+.registration-funding h3, .registration-funding strong { color: var(--epix-text); font-weight: 600 }
+.registration-funding .btn, .registration-funding .text-link { max-width: 100%; white-space: normal; overflow-wrap: anywhere }
+.registration-funding > .text-link, .registration-funding .stack-sm > span { display: block }
+.registration-funding code { display: block; padding: 10px 12px; border: 1px solid var(--epix-border); border-radius: var(--radius-md); background: var(--epix-surface-2); color: var(--epix-text); font-family: var(--epix-font-mono); font-size: 12px; overflow-wrap: anywhere; user-select: all }
+.registration-fee-table { width: 100%; table-layout: fixed; font-size: 12px; font-variant-numeric: tabular-nums }
+.registration-fee-table th, .registration-fee-table td { padding: 9px 10px; overflow-wrap: anywhere }
+.registration-error pre, pre.registration-technical { max-width: 100%; max-height: 240px; margin: 8px 0 0; padding: 12px; overflow: auto; border: 1px solid var(--epix-border); border-radius: var(--radius-md); background: var(--epix-surface-2); color: var(--epix-text-mid); font: 11px/1.65 var(--epix-font-mono); white-space: pre-wrap; overflow-wrap: anywhere }
+@container registration (min-width: 620px) {
+ .registration-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px }
+ .registration-cost { border-top: 0; border-left: 1px solid var(--epix-border); padding-top: 0; padding-left: 28px }
+}
+@media (max-width: 640px) {
+ .registration-card.card { padding: 18px }
+ .registration-grid { gap: 20px }
+ .registration-cost { padding-top: 20px }
+ .registration-help > summary, .registration-purpose > summary, .registration-error > summary, .registration-error details > summary { min-height: 44px; padding-top: 12px; padding-bottom: 12px }
+ .registration-funding .btn { min-height: 44px }
 }

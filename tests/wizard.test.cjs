@@ -15,12 +15,12 @@ function setup() {
     console, Map, Promise, URL,
     setTimeout(fn, delay) { const id = ++nextTimer; timers.set(id, { fn, at: now + delay }); return id; },
     clearTimeout(id) { timers.delete(id); },
-    Page: { render() {}, isEmbedded: true },
-    Wallet: { address: '0x1111111111111111111111111111111111111111', isConnected() { return !!this.address; }, renderButton() { return { tag: 'wallet' }; } },
+    Page: { render() {}, isEmbedded: true, nameUrl: (tld, name) => '?Name/' + tld + '/' + name },
+    Wallet: { loadBalance: async () => null, renderHelp: () => ({ tag: 'help' }), address: '0x1111111111111111111111111111111111111111', isConnected() { return !!this.address; }, renderButton() { return { tag: 'wallet' }; } },
     Chain: { DEFAULT_TLD: 'epix' },
     XidContract: { ZERO: '0x0000000000000000000000000000000000000000', read: async () => ['', ''], peersFrom: rows => rows },
     Rest: { namesAll: async () => ({ names: [{ name: 'alice', tld: 'epix' }], total: 1 }) },
-    Format: { ether: String },
+    Format: { ether: String, epix: String },
     Icons: new Proxy({}, { get: () => () => ({ tag: 'icon' }) }),
     h(tag, props, children) { return { tag, ...(props && typeof props === 'object' && !Array.isArray(props) ? { props, children } : { children: props }) }; },
     location: { href: '' }
@@ -36,7 +36,7 @@ function setup() {
     run(fn, args, done) { writes.push({ fn, args, done, tx: this }); this.status = 'pending'; }
   };
   vm.createContext(context);
-  for (const file of ['js/utils/Text.js', 'js/utils/Bech32.js', 'js/pages/AddPeerPage.js']) {
+  for (const file of ['js/utils/Text.js', 'js/utils/Bech32.js', 'js/wallet/RegistrationCost.js', 'js/RegistrationCard.js', 'js/pages/AddPeerPage.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   }
   const peer = context.Bech32.evmToBech32('0x2222222222222222222222222222222222222222');
@@ -309,4 +309,43 @@ test('valid relative return targets keep the full xite, query, and fragment', as
     page.handleReturn();
     assert.equal(context.location.href, target);
   }
+});
+
+
+test('wizard registration follows arbitrary live fees as name lengths and prices change', async () => {
+  const { context, page, writes } = setup(); await flush();
+  const quotes = new Map([['a', 901n], ['ab', 703n], ['abc', 501n], ['abcd', 307n], ['abcde', 109n]]);
+  const reads = [];
+  context.XidContract.read = async (fn, args) => {
+    if (fn === 'resolve') return context.XidContract.ZERO;
+    reads.push([...args]); return quotes.get(args[0]);
+  };
+  for (const [name, fee] of quotes) {
+    const pending = page.handleNewNameInput({ target: { value: name + '.epix' } });
+    assert.equal(page.fee, null);
+    assert.equal(page.canRegister(), false);
+    await pending; await flush();
+    assert.equal(page.fee, fee);
+    assert.equal(page.lookupName, name);
+    assert.match(textOf(page.renderRegisterForm()), new RegExp(String(fee) + ' EPIX'));
+  }
+  quotes.set('abcde', 113n);
+  await page.handleRefresh(); await flush();
+  assert.equal(page.fee, 113n);
+  assert.equal(reads.length, 6);
+  assert.equal(writes.length, 0);
+});
+
+
+test('wizard cost refresh retires unsubmitted errors without discarding submitted receipts', async () => {
+  const { context, page } = setup(); await flush();
+  context.XidContract.read = async fn => fn === 'resolve' ? context.XidContract.ZERO : 123n;
+  await page.handleNewNameInput({ target: { value: 'funded' } }); await flush();
+  page.registerTx.status = 'error'; page.registerTx.errorText = 'Old insufficient funds';
+  await page.handleRefresh(); await flush();
+  assert.equal(page.registerTx.status, 'idle');
+  assert.equal(page.registerTx.errorText, '');
+  page.registerTx.status = 'error'; page.registerTx.hash = '0xsubmitted';
+  await page.handleRefresh(); await flush();
+  assert.equal(page.registerTx.hash, '0xsubmitted');
 });

@@ -26,7 +26,7 @@ function setup(overrides = {}) {
     Chain: { DEFAULT_TLD: 'epix' },
     Format: { ether: value => String(value), epix: value => String(value), tierLabel: value => String(value.max_length) },
     TxErrors: { extract: err => err.message || String(err) },
-    Wallet: { isConnected: () => true, chainOk: true, handleConnectClick() {}, handleSwitchClick() {} },
+    Wallet: { loadBalance: async () => null, renderHelp: () => h("div"), isConnected: () => true, chainOk: true, handleConnectClick() {}, handleSwitchClick() {} },
     Rest: {
       namesAll: async () => ({ names: [], total: 0 }),
       reverse: async () => ({ ok: true, data: { primary_name: null } }),
@@ -50,7 +50,7 @@ function setup(overrides = {}) {
   };
   context.window = context;
   vm.createContext(context);
-  for (const file of ['utils/Text.js', 'utils/Bech32.js', 'utils/ProfileAvatar.js', 'pages/SearchPage.js', 'pages/RegisterPage.js', 'pages/PricesPage.js']) {
+  for (const file of ['utils/Text.js', 'utils/Bech32.js', 'utils/ProfileAvatar.js', 'wallet/RegistrationCost.js', 'RegistrationCard.js', 'pages/SearchPage.js', 'pages/RegisterPage.js', 'pages/PricesPage.js']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../js', file), 'utf8'), context, { filename: file });
   }
   return { c: context, calls, timers };
@@ -303,4 +303,54 @@ test('all lookup, registration, and pricing actions render as native buttons', (
   assert.ok(all.filter(node => node.vnodeSelector?.startsWith('button')).length >= 7);
   assert.equal(all.filter(node => node.vnodeSelector?.startsWith('a') && /^#/.test(node.properties?.href || '')).length, 0);
   assert.ok(all.some(node => node.properties?.['aria-live'] === 'polite'));
+});
+
+
+test('registration uses each current chain quote, including a changed fee for the same name', async () => {
+  const quotes = new Map([['a', 71n], ['ab', 53n], ['abc', 41n], ['abcd', 29n], ['abcde', 17n]]);
+  const reads = [];
+  const { c, calls } = setup({ read: async (fn, args) => {
+    if (fn === 'resolve') return ZERO;
+    reads.push([...args]); return quotes.get(args[0]);
+  } });
+  const page = new c.RegisterPage();
+  for (const [name, fee] of quotes) {
+    page.handleInput({ target: { value: name + '.EPIX' } });
+    assert.equal(page.fee, null, 'editing immediately clears the old price');
+    assert.equal(page.canRegister(), false);
+    await page.lookup();
+    assert.equal(page.fee, fee);
+    assert.equal(page.quotedName, name);
+    assert.match(text(page.render()), new RegExp(String(fee) + ' EPIX'));
+  }
+  quotes.set('abcde', 23n);
+  await page.handleRefresh();
+  assert.equal(page.fee, 23n, 'refresh must read the network even at the same length');
+  assert.equal(reads.length, 6);
+  assert.ok(reads.every(args => args[1] === 'epix'));
+  assert.equal(calls.length, 0);
+});
+
+test('malformed chain quotes never display or enable a fabricated registration price', async () => {
+  for (const amount of [null, -1n, '10000', undefined]) {
+    const { c } = setup({ read: async fn => fn === 'resolve' ? ZERO : amount });
+    const page = new c.RegisterPage();
+    page.input = 'one'; await page.lookup();
+    assert.equal(page.fee, null);
+    assert.equal(page.canRegister(), false);
+  }
+});
+
+
+test('explicit price and balance refresh clears unsubmitted errors but retains transaction receipts', async () => {
+  const { c } = setup();
+  const page = new c.RegisterPage(); page.input = 'funded'; await page.lookup();
+  page.tx.status = 'error'; page.tx.errorText = 'Old insufficient funds';
+  await page.handleRefresh();
+  assert.equal(page.tx.status, 'idle');
+  assert.equal(page.tx.errorText, '');
+  page.tx.status = 'error'; page.tx.hash = '0xsubmitted'; page.tx.errorText = 'Receipt error';
+  await page.handleRefresh();
+  assert.equal(page.tx.hash, '0xsubmitted');
+  assert.equal(page.tx.errorText, 'Receipt error');
 });

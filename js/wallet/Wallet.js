@@ -10,6 +10,11 @@
     raw: null,
     browserProvider: null,
     balance: null,
+    balanceRaw: null,
+    balanceLoading: false,
+    balanceError: null,
+    revision: 0,
+    balanceRequest: null,
     chainOk: true,
     ready: false,
     menuOpen: false,
@@ -65,6 +70,9 @@
 
     onConnected: async function (result) {
       var self = this;
+      var revision = ++this.revision;
+      this.clearBalance();
+      this.chainOk = false;
       this.raw = result.provider;
       this.browserProvider = new ethers.BrowserProvider(this.raw, "any");
       this.address = ethers.getAddress(result.address);
@@ -81,12 +89,21 @@
         });
         this.raw.on("chainChanged", function () {
           if (self.raw !== hookedProvider) return;
+          ++self.revision;
+          self.clearBalance();
+          self.chainOk = false;
           self.browserProvider = new ethers.BrowserProvider(self.raw, "any");
-          self.checkChain();
-          self.loadBalance();
+          Page.onWalletChanged();
+          self.checkChain().then(function (current) {
+            if (!current) return;
+            self.loadBalance();
+            Page.onWalletChanged();
+          });
         });
       }
+      Page.onWalletChanged();
       await this.checkChain();
+      if (revision !== this.revision) return;
       this.loadBalance();
       Page.onWalletChanged();
       Page.render();
@@ -94,36 +111,41 @@
 
     disconnect: function () {
       if (typeof EpixKit !== "undefined") EpixKit.disconnect();
+      ++this.revision;
+      this.clearBalance();
       this.address = null;
       this.bech32 = null;
       this.walletName = null;
       this.walletIcon = null;
       this.raw = null;
       this.browserProvider = null;
-      this.balance = null;
+      this.chainOk = false;
       this.menuOpen = false;
       Page.onWalletChanged();
       Page.render();
     },
 
     checkChain: async function () {
-      if (!this.browserProvider) return;
+      if (!this.browserProvider) return false;
+      var raw = this.raw, revision = this.revision, valid = false;
       try {
-        var id = await this.raw.request({ method: "eth_chainId" });
-        this.chainOk = Number(id) === Chain.ID;
-      } catch (e) {
-        this.chainOk = false;
-      }
+        var id = await raw.request({ method: "eth_chainId" });
+        valid = Number(id) === Chain.ID;
+      } catch (e) {}
+      if (revision !== this.revision || raw !== this.raw) return false;
+      this.chainOk = valid;
       Page.render();
+      return true;
     },
 
     switchChain: async function () {
       if (!this.raw) return;
+      var raw = this.raw, address = this.address;
       try {
-        await this.raw.request({ method: "wallet_switchEthereumChain", params: [{ chainId: Chain.HEX }] });
+        await raw.request({ method: "wallet_switchEthereumChain", params: [{ chainId: Chain.HEX }] });
       } catch (err) {
         if (err && err.code === 4902) {
-          await this.raw.request({
+          await raw.request({
             method: "wallet_addEthereumChain",
             params: [{
               chainId: Chain.HEX,
@@ -137,25 +159,56 @@
           throw err;
         }
       }
+      if (raw !== this.raw || address !== this.address) throw new Error("Your wallet changed. Review the details and try again.");
       await this.checkChain();
+      Page.onWalletChanged();
     },
 
     // The signer for a write, on the right chain.
     signer: async function () {
       if (!this.browserProvider) throw new Error("Connect your wallet first");
+      var address = this.address, raw = this.raw;
       if (!this.chainOk) await this.switchChain();
       if (!this.chainOk) throw new Error("Switch your wallet to the Epix network");
-      return this.browserProvider.getSigner(this.address);
+      if (address !== this.address || raw !== this.raw) throw new Error("Your wallet changed. Review the details and try again.");
+      var signer = await this.browserProvider.getSigner(address);
+      if (address !== this.address || raw !== this.raw) throw new Error("Your wallet changed. Review the details and try again.");
+      return signer;
+    },
+
+    clearBalance: function () {
+      this.balance = this.balanceRaw = this.balanceError = this.balanceRequest = null;
+      this.balanceLoading = false;
     },
 
     loadBalance: function () {
-      var self = this;
-      if (!this.address) return;
-      Chain.withRpc(function (p) { return p.getBalance(self.address); }).then(function (bal) {
+      var self = this, address = this.address, revision = this.revision;
+      if (!address) return Promise.resolve(null);
+      if (this.balanceRequest) return this.balanceRequest;
+      this.balance = this.balanceRaw = this.balanceError = null;
+      this.balanceLoading = true;
+      Page.render();
+      var request = Chain.withRpc(function (p) { return p.getBalance(address); }).then(function (bal) {
+        if (revision !== self.revision || address !== self.address) return null;
+        if (typeof bal !== "bigint" || bal < 0n) throw new Error("The balance service returned an invalid amount.");
+        self.balanceRaw = bal;
         var n = Number(ethers.formatEther(bal));
         self.balance = n >= 1000 ? Math.round(n).toLocaleString() : n.toFixed(4).replace(/\.?0+$/, "");
+        return bal;
+      }).catch(function () {
+        if (revision === self.revision && address === self.address) {
+          self.balance = self.balanceRaw = null;
+          self.balanceError = "Could not check your EPIX balance. Try again.";
+        }
+        return null;
+      }).finally(function () {
+        if (self.balanceRequest !== request) return;
+        self.balanceLoading = false;
+        self.balanceRequest = null;
         Page.render();
-      }).catch(function () {});
+      });
+      this.balanceRequest = request;
+      return request;
     },
 
     handleConnectClick: function () { this.connect(); return false; },

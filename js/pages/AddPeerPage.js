@@ -40,6 +40,8 @@
       this.fee = null;
       this.seq = 0;
       this.registerTx = new TxState();
+      this.cost = new RegistrationCost();
+      this.card = new RegistrationCard(this.cost);
       this.linkTx = new TxState();
       this.linkChecking = false;
       this.chainLinked = false;
@@ -54,7 +56,7 @@
       this.pendingCalls = new Map();
       ["handleRegisterToggle", "handleNewNameInput", "handleTiersToggle", "handleRegister",
         "handleLink", "handleShowRegister", "handleSelectClick", "handleContinue", "handleChange",
-        "handleRetryNames", "handleRetryLookup", "handleRetryConfirmation", "handleReturn"].forEach(function (key) {
+        "handleRetryNames", "handleRetryLookup", "handleRetryConfirmation", "handleReturn", "handleRefresh", "handleNameKey"].forEach(function (key) {
         this[key] = this[key].bind(this);
       }, this);
     }
@@ -72,6 +74,7 @@
       this.active = false;
       this.generation += 1;
       this.seq += 1;
+      this.cost.clear();
       this.stopTimers();
       // Re-entering refreshes account data and resumes via the existing-link check.
       this.receiptNames = [];
@@ -84,7 +87,7 @@
 
     onWalletChanged() {
       if (!this.active) return;
-      if (Wallet.address === this.walletAddress) return;
+      if (Wallet.address === this.walletAddress) { this.cost.onWalletChanged(); return; }
       this.generation += 1;
       this.seq += 1;
       this.stopTimers();
@@ -98,6 +101,8 @@
       this.newName = this.lookupName = this.lookupError = "";
       this.isAvailable = this.resolving = this.showRegister = false;
       this.fee = null;
+      this.cost.clear();
+      this.card.copyStatus = "";
       this.registerTx = new TxState();
       this.linkTx = new TxState();
       this.linkChecking = this.chainLinked = this.nodeRecorded = false;
@@ -215,8 +220,20 @@
     handleRetryNames() { this.loadNames(); this.loadPrimary(); return false; }
     handleShowRegister() { this.showRegister = true; Page.render(); return false; }
     handleRegisterToggle() { if (!this.registerTx.isBusy) this.showRegister = !this.showRegister; Page.render(); return false; }
-    handleNewNameInput(e) { this.newName = e.target.value; this.lookup(); }
+    handleNewNameInput(e) {
+      if (this.registerTx.isBusy) return;
+      this.newName = e.target.value;
+      this.registerTx = new TxState();
+      return this.lookup();
+    }
+    handleNameKey(e) { if (e.key === "Enter") { e.preventDefault(); if (!this.registerTx.isBusy) this.lookup(); } }
     handleRetryLookup() { this.lookup(); return false; }
+    handleRefresh() {
+      if (this.registerTx.isBusy) return;
+      if (this.registerTx.status === "error" && !this.registerTx.hash) this.registerTx = new TxState();
+      Wallet.loadBalance();
+      return this.lookup();
+    }
 
     lookup() {
       var self = this, input = Text.nameInput(this.newName), seq = ++this.seq;
@@ -224,17 +241,20 @@
       this.lookupName = "";
       this.lookupError = "";
       this.fee = null;
+      this.cost.clear();
       this.resolving = input.valid;
       if (!input.valid) { Page.render(); return; }
       Page.render();
-      Promise.all([
+      return Promise.all([
         XidContract.read("resolve", [input.name, input.tld]),
         XidContract.read("getRegistrationFee", [input.name, input.tld])
       ]).then(function (r) {
         if (!self.active || seq !== self.seq) return;
+        if (typeof r[1] !== "bigint" || r[1] < 0n) throw new Error("Registration price unavailable");
         self.lookupName = input.name;
         self.isAvailable = String(r[0]) === XidContract.ZERO;
         self.fee = r[1];
+        if (self.isAvailable) self.cost.setQuote(input.name, input.tld, self.fee);
         self.resolving = false;
         Page.render();
       }).catch(function () {
@@ -263,13 +283,13 @@
 
     canRegister() {
       var input = Text.nameInput(this.newName);
-      return input.valid && input.name === this.lookupName && this.isAvailable && !this.resolving && !this.lookupError && this.fee !== null && !this.registerTx.isBusy;
+      return input.valid && input.name === this.lookupName && this.isAvailable && !this.resolving && !this.lookupError && this.fee !== null && !this.registerTx.isBusy && Wallet.isConnected() && Wallet.chainOk !== false && !this.cost.loading && !this.cost.balanceLoading && !this.cost.insufficient;
     }
 
     handleRegister() {
       if (!this.canRegister()) return false;
       var self = this, input = Text.nameInput(this.newName), generation = this.generation, address = Wallet.address;
-      this.registerTx.run("register", [input.name, input.tld], function () {
+      Promise.resolve(this.registerTx.run("register", [input.name, input.tld], function () {
         if (!self.isCurrent(generation, address)) return;
         self.selectedName = input.name;
         self.selectedTld = input.tld;
@@ -281,8 +301,12 @@
         self.newName = "";
         self.lookupName = "";
         self.isAvailable = false;
+        self.cost.clear();
+        Wallet.loadBalance();
         self.loadNames();
         self.loadPrimary();
+      }, { registrationFee: this.fee })).then(function () {
+        if (self.isCurrent(generation, address) && self.registerTx.error && self.registerTx.error.code === "REGISTRATION_FEE_CHANGED") self.lookup();
       });
       return false;
     }
@@ -459,50 +483,53 @@
       ]);
     }
 
-    renderRegisterForm() {
-      var self = this, input = Text.nameInput(this.newName), tx = this.registerTx;
-      var status = null;
-      if (this.newName) {
-        if (!input.valid) status = h("p.text-err.small", input.error);
-        else if (this.resolving) status = h("p.mid.small", "Checking availability and price...");
-        else if (this.lookupError) status = h("div.msg.msg-err", [this.lookupError, h("button.btn.btn-sm", { type: "button", onclick: this.handleRetryLookup }, "Retry check")]);
-        else if (this.lookupName && this.isAvailable) status = h("div.stack-sm", [
-          h("div.row-gap", [h("span.pill.pill-ok", "Available"), h("span", input.name + "." + input.tld)]),
-          h("button.fee-toggle", { type: "button", onclick: this.handleTiersToggle, "aria-expanded": this.showTiers ? "true" : "false", classes: { "is-open": this.showTiers } }, [
-            h("span.row-gap", ["Registration fee", Icons.chevronDown()]), h("strong", Format.ether(this.fee) + " EPIX")
-          ]),
-          h("p.dim.small", "One-time registration fee. Network transaction fees also apply."),
-          this.showTiers ? h("div.tiers-box", [
-            this.tiersLoading ? h("p.pad-sm", "Loading prices...") : this.priceTiers.length ? h("table.table.table-compact", [h("tbody", this.priceTiers.map(function (tier, i) {
+    renderTiers() {
+      var self = this, input = Text.nameInput(this.newName);
+      return h("div.stack-sm", { key: "live-price-tiers" }, [
+        h("button.fee-toggle", { type: "button", onclick: this.handleTiersToggle, "aria-expanded": this.showTiers ? "true" : "false", classes: { "is-open": this.showTiers } }, [
+          h("span.row-gap", ["Live price tiers", Icons.chevronDown()])
+        ]),
+        this.showTiers ? h("div.tiers-box.registration-fee-table", [
+          this.tiersLoading ? h("p.pad-sm", "Loading prices...") : this.priceTiers.length ? h("table.table.table-compact", [
+            h("caption.sr-only", "Current registration prices from EpixChain"),
+            h("tbody", this.priceTiers.map(function (tier, i) {
               return h("tr", { key: String(tier.max_length), classes: { "is-current": Format.isCurrentTier(input.name.length, i, self.priceTiers) } }, [
                 h("td", Format.tierLabel(tier, i, self.priceTiers)), h("td.num", Format.epix(tier.price) + " EPIX")
               ]);
-            }))]) : h("p.pad-sm", "Pricing is unavailable. Close and reopen to retry.")
-          ]) : null
-        ]);
-        else if (this.lookupName) status = h("p.text-warn", input.name + "." + input.tld + " is already registered.");
-      }
-      return h("div.subcard.stack-sm", { key: "register-form" }, [
-        h("h3", "Register a new name"),
-        h("label.field", { for: "wizard-name" }, "Name"),
-        h("div.input-row", [
-          h("input.input", { id: "wizard-name", type: "text", value: this.newName, placeholder: "Your name or name.epix", oninput: this.handleNewNameInput, autocomplete: "off", disabled: tx.isBusy, "aria-describedby": "wizard-name-help" }),
-          h("span.suffix-chip", "." + Chain.DEFAULT_TLD)
-        ]),
-        h("p.dim.small", { id: "wizard-name-help" }, "Letters, numbers and hyphens. Your name does not expire."),
-        h("div", { "aria-live": "polite" }, [status]),
-        h("button.btn.btn-primary.btn-block", { type: "button", onclick: this.handleRegister, disabled: !this.canRegister() }, tx.isPending ? "Confirm registration in wallet..." : tx.isConfirming ? "Registering name..." : "Register name"),
-        tx.errorText ? h("div.msg.msg-err", { role: "alert" }, tx.errorText) : null
+            }))
+          ]) : h("p.pad-sm", "Pricing is unavailable. Close and reopen to retry.")
+        ]) : null
       ]);
+    }
+
+    renderRegisterForm() {
+      var input = Text.nameInput(this.newName), status = null;
+      if (this.newName) {
+        if (!input.valid) status = h("p.text-err.small", { role: "alert" }, input.error);
+        else if (this.resolving) status = h("p.mid.small", "Checking availability and price...");
+        else if (this.lookupError) status = h("div.msg.msg-err.stack-sm", { role: "alert" }, [h("p", this.lookupError), h("button.btn.btn-sm", { type: "button", onclick: this.handleRetryLookup }, "Retry check")]);
+        else if (this.lookupName && this.isAvailable) status = h("div.row-gap", [h("span.pill.pill-ok", "Available"), h("span", input.name + "." + input.tld)]);
+        else if (this.lookupName) status = h("div.stack-sm", [
+          h("p.text-warn", input.name + "." + input.tld + " is already registered."),
+          h("a.text-link.small", { href: Page.nameUrl(input.tld, input.name), target: "_blank", rel: "noopener noreferrer" }, "View name details")
+        ]);
+      }
+      return this.card.render({
+        id: "wizard-name", embedded: true, linking: true, input: this.newName, name: input.name, tld: input.tld,
+        onInput: this.handleNewNameInput, onKeyDown: this.handleNameKey, invalid: !!this.newName && !input.valid,
+        tx: this.registerTx, fee: this.fee, resolving: this.resolving, available: this.isAvailable,
+        status: status, canRegister: this.canRegister(), onRegister: this.handleRegister,
+        onRefresh: this.handleRefresh, tiers: this.renderTiers()
+      });
     }
 
     renderSelect() {
       var self = this;
       return h("div.stack", { key: "select" }, [
-        h("div", [h("h2", "Choose your name"), h("p.mid", "Select the identity you want to use" + (this.returnTo ? " on " + this.originLabel() : "") + ".")]),
+        h("div", [h("h2", "Choose a .epix name"), h("p.mid", "Choose the name to use" + (this.returnTo ? " on " + this.originLabel() : "") + ".")]),
         this.namesLoading ? h("p.mid", { role: "status" }, "Loading your names...") : null,
         this.namesError ? h("div.msg.msg-err", { role: "alert" }, [h("p", this.namesError), h("button.btn.btn-sm", { type: "button", onclick: this.handleRetryNames }, "Retry names")]) : null,
-        !this.namesLoading && !this.namesError && !this.names.length ? h("p.mid", "This wallet does not own any names yet. Register one below to continue.") : null,
+        !this.namesLoading && !this.namesError && !this.names.length ? h("p.mid", "This wallet does not own any names yet. Register a name, then link your login identity to use it here.") : null,
         this.names.length ? h("div.select-list", { "aria-label": "Your names" }, this.names.map(function (entry) {
           var selected = entry.name === self.selectedName && entry.tld === self.selectedTld;
           var primary = entry.name === self.primaryName && entry.tld === self.primaryTld;
@@ -511,6 +538,7 @@
             selected ? h("span.check-dot", [Icons.check(3)]) : null
           ]);
         })) : null,
+        this.names.length ? h("p.small.mid", { key: "existing-name-cost" }, "Use a name you already own with no new registration charge. Linking your login identity has a network fee.") : null,
         this.names.length ? h("button.btn.btn-primary.btn-block", { type: "button", onclick: this.handleContinue, disabled: !this.selectedName || this.namesLoading || !!this.namesError || this.registerTx.isBusy }, "Continue with " + (this.selectedName ? this.selectedName + "." + this.selectedTld : "selected name")) : null,
         this.names.length || this.namesError ? h("button.btn.btn-ghost", { type: "button", onclick: this.handleRegisterToggle, disabled: this.registerTx.isBusy, "aria-expanded": this.showRegister ? "true" : "false" }, this.showRegister ? "Close registration" : "Register a new name") : null,
         this.showRegister || (!this.namesLoading && !this.namesError && !this.names.length) ? this.renderRegisterForm() : null
@@ -520,11 +548,11 @@
     renderLink() {
       var tx = this.linkTx, ready = this.linkStatus === "ready", polling = this.linkStatus === "polling";
       return h("div.stack", { key: "link" }, [
-        h("div", [h("h2", ready ? "Identity ready" : this.chainLinked ? "Finish connecting" : "Link your identity"), h("p.mid", this.chainLinked ? "Your name is linked on-chain." : "Approve one transaction to connect this EpixNet identity to your name.")]),
+        h("div", [h("h2", ready ? "Identity ready" : this.chainLinked ? "Finish connecting" : "Link your login identity"), h("p.mid", this.chainLinked ? "Your name is linked on-chain." : "Approve a separate transaction to link this EpixNet login identity to your name. There is no new registration charge; a network fee applies.")]),
         h("div.subcard.stack-sm", [
           h("div.row-between", [h("span.mid", "Your xID"), h("strong", this.selectedName + "." + this.selectedTld)]),
           !this.chainLinked ? h("button.btn-link", { type: "button", onclick: this.handleChange, disabled: tx.isBusy || this.linkChecking }, "Change name or register another") : null,
-          h("p.overline", "EpixNet identity"),
+          h("p.overline", "EpixNet login identity"),
           h("p.mono.small.break", this.peerAddress || "No identity address was provided.")
         ]),
         this.registerTx.isSuccess && !this.chainLinked ? h("p.text-ok", "Name registered. Complete the link to use it on your xite.") : null,
@@ -532,7 +560,7 @@
         ready ? h("div.msg.msg-ok", { role: "status" }, this.redirectTimer ? "Your identity is saved on this node. Returning to " + this.originLabel() + "..." : "Your identity is saved on this node. You can return and select it on your xite.") : null,
         polling ? h("div.spin-row", { role: "status" }, [h("div.spinner.spinner-sm"), h("span", "Confirming your identity with the node...")]) : null,
         this.linkError ? h("div.msg.msg-err", { role: "alert" }, this.linkError) : null,
-        tx.errorText ? h("div.msg.msg-err", { role: "alert" }, tx.errorText) : null,
+        RegistrationCard.error(tx),
         !this.chainLinked ? h("button.btn.btn-primary.btn-block", { type: "button", onclick: this.handleLink, disabled: tx.isBusy || this.linkChecking || !this.validPeer() }, this.linkChecking ? "Checking existing link..." : tx.isPending ? "Confirm link in wallet..." : tx.isConfirming ? "Linking identity..." : "Link identity") : null,
         this.chainLinked && !polling && !ready ? h("button.btn.btn-primary.btn-block", { type: "button", onclick: this.handleRetryConfirmation }, "Retry confirmation") : null,
         this.chainLinked && this.returnTo ? h("button.btn.btn-block", { type: "button", onclick: this.handleReturn }, "Return to " + this.originLabel()) : null,
@@ -542,12 +570,12 @@
 
     render() {
       var step = this.currentStep();
-      return h("div.AddPeerPage.stack", { key: "add-peer" }, [
+      return h("div.AddPeerPage.stack", { key: "add-peer", classes: { "registration-step": step === 1 } }, [
         h("div.centered", [h("h1.wizard-title", this.returnTo ? "Connect to " + this.originLabel() : "Connect your xID"), h("p.wizard-intro", "One name for your EpixNet identity.")]),
-        this.returnTo ? h("p.mid.centered.wizard-context", "After registration and linking, we will return you to " + this.originLabel() + ".") : null,
+        this.returnTo ? h("p.mid.centered.wizard-context", "After your login identity is linked and confirmed, we will return you to " + this.originLabel() + ".") : null,
         this.renderSteps(),
         h("div.card", [step === 0 ? this.renderConnect() : step === 1 ? this.renderSelect() : this.renderLink()]),
-        Wallet.isConnected() ? h("div.wizard-wallet", [Wallet.renderButton({ compact: true })]) : null,
+        Wallet.isConnected() ? h("div.wizard-wallet", [Wallet.renderButton({ compact: false })]) : null,
         this.returnTo && !this.chainLinked ? h("button.btn-link", { type: "button", onclick: this.handleReturn, disabled: this.registerTx.isBusy || this.linkTx.isBusy }, "Cancel and return to " + this.originLabel()) : null
       ]);
     }
