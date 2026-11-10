@@ -15,10 +15,14 @@
       this.seq = 0;
       this.timer = null;
       this.tx = new TxState();
+      this.cost = new RegistrationCost();
+      this.card = new RegistrationCard(this.cost);
+      this.walletAddress = Wallet.address;
       this.handleInput = this.handleInput.bind(this);
       this.handleKey = this.handleKey.bind(this);
       this.lookup = this.lookup.bind(this);
       this.handleRegister = this.handleRegister.bind(this);
+      this.handleRefresh = this.handleRefresh.bind(this);
     }
 
     enter(name) {
@@ -26,6 +30,7 @@
       this.input = Text.normalizeName(name);
       this.name = this.input;
       this.tx.reset();
+      this.cost.clear();
       this.registeredName = "";
       return this.lookup();
     }
@@ -42,8 +47,9 @@
       this.isAvailable = false;
       this.fee = null;
       this.quotedName = "";
+      this.cost.clear();
       this.error = "";
-      this.resolving = false;
+      this.resolving = parsed.valid;
       this.registeredName = "";
       this.tx.reset();
       if (parsed.valid) this.timer = setTimeout(this.lookup, 300);
@@ -62,6 +68,7 @@
       this.fee = null;
       this.isAvailable = false;
       this.quotedName = "";
+      this.cost.clear();
       this.error = "";
       this.resolving = parsed.valid;
       Page.render();
@@ -75,8 +82,15 @@
         this.owner = String(values[0]);
         this.isAvailable = this.owner === XidContract.ZERO;
         this.fee = values[1].fee === undefined ? null : values[1].fee;
+        if (typeof this.fee !== "bigint" || this.fee < 0n) {
+          this.fee = null;
+          values[1].error = true;
+        }
         if (this.isAvailable && values[1].error) this.error = "This name is available, but its registration fee could not be loaded. Try again before registering.";
-        if (this.fee !== null) this.quotedName = parsed.name;
+        if (this.fee !== null) {
+          this.quotedName = parsed.name;
+          if (this.isAvailable) this.cost.setQuote(parsed.name, parsed.tld, this.fee);
+        }
       } catch (e) {
         if (seq !== this.seq) return;
         this.error = "Could not check availability. " + TxErrors.extract(e);
@@ -87,16 +101,36 @@
 
     canRegister() {
       var parsed = Text.nameInput(this.input);
-      return parsed.valid && this.quotedName === parsed.name && this.isAvailable && this.fee !== null && !this.resolving && !this.tx.isBusy && Wallet.isConnected() && Wallet.chainOk !== false;
+      return parsed.valid && this.quotedName === parsed.name && this.isAvailable && this.fee !== null && !this.resolving && !this.tx.isBusy && Wallet.isConnected() && Wallet.chainOk !== false && !this.cost.loading && !this.cost.balanceLoading && !this.cost.insufficient;
+    }
+
+    onWalletChanged() {
+      if (this.walletAddress !== Wallet.address) {
+        this.walletAddress = Wallet.address;
+        this.tx.reset();
+        this.registeredName = "";
+        this.card.copyStatus = "";
+      }
+      this.cost.onWalletChanged();
+    }
+
+    handleRefresh() {
+      if (this.tx.isBusy) return;
+      if (this.tx.status === "error" && !this.tx.hash) this.tx.reset();
+      Wallet.loadBalance();
+      return this.lookup();
     }
 
     handleRegister() {
       if (!this.canRegister()) return;
       var self = this;
       var parsed = Text.nameInput(this.input);
-      this.tx.run("register", [parsed.name, parsed.tld], function () {
+      return Promise.resolve(this.tx.run("register", [parsed.name, parsed.tld], function () {
         self.registeredName = parsed.name;
+        Wallet.loadBalance();
         self.lookup();
+      }, { registrationFee: this.fee })).then(function () {
+        if (self.tx.error && self.tx.error.code === "REGISTRATION_FEE_CHANGED") self.lookup();
       });
     }
 
@@ -118,31 +152,24 @@
         h("a.btn.btn-secondary", { href: Page.nameUrl(Chain.DEFAULT_TLD, this.name), onclick: Page.handleLinkClick }, "View name details")
       ]);
       return h("div.lookup-result.stack-sm", { key: "available" }, [
-        h("div.row-between", [h("h2.result-title", this.name + ".epix"), h("span.pill.pill-ok", "Available")]),
-        h("div.kv", [h("span.k", "One-time registration fee"), h("span.v", Format.ether(this.fee) + " EPIX")]),
-        h("p.small.dim", "The fee is burned on-chain. Network transaction fees also apply.")
+        h("div.row-between", [h("h2.result-title", this.name + ".epix"), h("span.pill.pill-ok", "Available")])
       ]);
     }
 
     render() {
-      var tx = this.tx;
-      var label = tx.status === "simulating" ? "Checking transaction..." : tx.isPending ? "Confirm in your wallet..." : tx.isConfirming ? "Waiting for confirmation..." : "Register " + (this.name ? this.name + ".epix" : "name");
       return h("div.stack.RegisterPage", { key: "register" }, [
-        h("div.page-head", [h("h1", "Register your name"), h("p", "Your .epix name. No renewals.")]),
-        h("div.card.stack-sm", [
-          h("label.field.field-lg", { for: "register-name" }, "Choose your name"),
-          h("input.input", { id: "register-name", type: "text", value: this.input, placeholder: "yourname or yourname.epix", oninput: this.handleInput, onkeydown: this.handleKey, autocomplete: "off", spellcheck: false, disabled: tx.isBusy, "aria-describedby": "register-name-help", "aria-invalid": this.validation ? "true" : "false" }),
-          h("p.lookup-hint.small.dim", { id: "register-name-help" }, "1–64 letters, numbers, or internal hyphens. Full .epix names are accepted."),
-          h("div.stack-sm", { "aria-live": "polite", "aria-busy": this.resolving || tx.isBusy ? "true" : "false" }, [this.renderStatus()]),
-          !Wallet.isConnected() ? h("div.stack-sm", { key: "connect" }, [
-            h("p.mid", "Check a name above, then connect your wallet to register."),
-            h("button.btn.btn-primary.btn-block", { type: "button", onclick: Wallet.handleConnectClick, disabled: Wallet.connecting }, Wallet.connecting ? "Connecting..." : "Connect wallet"),
-            Wallet.connectError ? h("p.text-err", { role: "alert" }, Wallet.connectError) : null
-          ]) : Wallet.chainOk === false ? h("button.btn.btn-primary.btn-block", { key: "switch", type: "button", onclick: Wallet.handleSwitchClick }, "Switch wallet to Epix") : !(tx.isSuccess && this.registeredName) ? h("button.btn.btn-primary.btn-block", { key: "register", type: "button", onclick: this.handleRegister, disabled: !this.canRegister() }, label) : null,
-          tx.errorText ? h("div.msg.msg-err", { key: "tx-error", role: "alert" }, tx.errorText) : null,
-          h("a.text-link.small", { href: "?Prices", onclick: Page.handleLinkClick }, "How registration pricing works"),
-          !Wallet.isConnected() ? Wallet.renderHelp() : null
-        ])
+        h("div.page-head", [
+          h("h1", "Register a .epix name"),
+          h("p", "A reusable name you own. Add a profile, link your EpixNet login identities, or point it to a website.")
+        ]),
+        this.card.render({
+          id: "register-name", input: this.input, name: this.name, tld: Chain.DEFAULT_TLD,
+          onInput: this.handleInput, onKeyDown: this.handleKey, invalid: !!this.validation,
+          tx: this.tx, fee: this.fee, resolving: this.resolving, available: this.isAvailable,
+          taken: this.owner !== null && !this.isAvailable,
+          status: this.renderStatus(), success: this.tx.isSuccess && !!this.registeredName,
+          canRegister: this.canRegister(), onRegister: this.handleRegister, onRefresh: this.handleRefresh
+        })
       ]);
     }
   }

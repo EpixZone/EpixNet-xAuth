@@ -20,6 +20,14 @@ Address: `epix1xauthduuyn63k6kj54jzgp4l8nnjlhrsyaku8c`
 - Length-based pricing, pulled from the chain's TLD config
 - All registration fees are burned
 - Names are permanent and do not expire
+- Both registration entry points share the Clear name card, with the current
+  name fee, network-fee estimate, exact EPIX balance, and funding help together.
+  Editing a name discards its previous quote immediately. Each valid name is
+  priced through `getRegistrationFee`; no registration tiers are hardcoded.
+- A registration refreshes its quote before the wallet request and stops if
+  the price changed. Amounts use integer base units for affordability checks.
+  The wallet chooses the final network fee, and the chain's registration fee
+  is not locked while a wallet approval is pending.
 
 ### Name management
 
@@ -115,6 +123,7 @@ img/                  logo and favicon
 js/lib/               vendored libraries: maquette, epixframe, epixkit, ethers v6
 js/utils/             Text, Bech32, Format, Rest and the shared xite helpers
 js/wallet/            Chain, TxErrors, XidContract, TxState, Wallet
+js/RegistrationCard.js shared form, costs, recovery messages and funding help
 js/Icons.js           inline SVG icons
 js/Layout.js          sidebar shell
 js/pages/             one class per page
@@ -147,6 +156,22 @@ account reads, routing and stats.
 Local tests do not submit transactions. For an end-to-end release check, use an
 owned test name and an EpixNet node to confirm wallet signing, certificate
 selection and return navigation from EpixTalk or EpixPost.
+
+The browser regression checks both registration flows against a running node
+serving the current checkout. Install Playwright and its Chromium browser in
+your test environment, then run:
+
+```sh
+EPIX_PLAYWRIGHT_MODULE=/absolute/path/to/playwright \
+  node tests/registration-browser.cjs --run-live
+```
+
+`EPIX_XAUTH_URL` overrides the local xAuth URL. Screenshots and results go to
+`test-results/registration-browser` unless `EPIX_XAUTH_BROWSER_OUTPUT` is set.
+The live-read cases compare displayed fees with independent current-chain
+queries at several name lengths. The remaining cases simulate wallet states,
+transactions, and node confirmation in an isolated browser. They never sign,
+broadcast, spend EPIX, or write a real identity certificate.
 
 Signing needs the owner key, which is not in this repository:
 

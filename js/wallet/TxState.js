@@ -50,9 +50,11 @@
     get isSuccess() { return this.status === "success"; }
     get isBusy() { return this.isPending || this.isConfirming; }
     get errorText() { return this.error ? TxErrors.extract(this.error) : null; }
+    get friendlyErrorText() { return this.error ? TxErrors.friendly(this.error) : null; }
+    get errorDetails() { return this.error ? TxErrors.extract(this.error) : null; }
 
     // Run `fn(args)` on the contract; `onSuccess` fires after the receipt.
-    run(fn, args, onSuccess) {
+    run(fn, args, onSuccess, options) {
       var self = this;
       if (this.isBusy) return Promise.resolve(null);
       this.reset();
@@ -64,7 +66,7 @@
         self.status = status;
         if (hash) self.hash = hash;
         Page.render();
-      }).then(function (receipt) {
+      }, options).then(function (receipt) {
         if (generation !== self.generation) return receipt;
         if (self.hash) self.resolveCosmosHash(self.hash);
         if (onSuccess) onSuccess(receipt);

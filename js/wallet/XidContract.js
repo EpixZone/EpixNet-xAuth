@@ -115,6 +115,38 @@
       });
     },
 
+    // Uses the RPC's gas estimate and current fee ceiling. The wallet still
+    // sets the final transaction fee; an unavailable estimate is never zero.
+    estimateNetworkFee: function (fn, args, from) {
+      var data = this.interface().encodeFunctionData(fn, args || []);
+      return Chain.withRpc(async function (provider) {
+        var values = await Promise.all([
+          provider.estimateGas({ from: from, to: ADDRESS, data: data }),
+          provider.getFeeData()
+        ]);
+        var gas = values[0], fees = values[1] || {};
+        var price = fees.maxFeePerGas === null || fees.maxFeePerGas === undefined ? fees.gasPrice : fees.maxFeePerGas;
+        if (typeof gas !== "bigint" || gas <= 0n || typeof price !== "bigint" || price < 0n) {
+          throw new Error("The network fee estimate is unavailable.");
+        }
+        return gas * price;
+      });
+    },
+
+    checkRegistrationFee: async function (args, quoted) {
+      if (typeof quoted !== "bigint" || quoted < 0n) {
+        throw new Error("Review the current registration fee before trying again.");
+      }
+      var current = await this.read("getRegistrationFee", args);
+      if (typeof current !== "bigint" || current < 0n) throw new Error("The current registration fee is unavailable.");
+      if (current !== quoted) {
+        var error = new Error("The registration price changed. Review the updated fee before confirming.");
+        error.code = "REGISTRATION_FEE_CHANGED";
+        error.currentFee = current;
+        throw error;
+      }
+    },
+
     // getLinkedIdentities' six parallel arrays -> one object per identity.
     peersFrom: function (result) {
       var out = [];
@@ -134,21 +166,57 @@
 
     // Simulate against the node, then send through the wallet and wait for
     // the receipt. `onStatus(status, hash?)` is called at every transition.
-    write: async function (fn, args, onStatus) {
+    write: async function (fn, args, onStatus, options) {
       var notify = onStatus || function () {};
       var data = this.interface().encodeFunctionData(fn, args || []);
-      var from = Wallet.address;
+      var from = Wallet.address, raw = Wallet.raw;
+      var quoted = fn === "register" && options && options.registrationFee !== undefined;
+      var assertWallet = function () {
+        if (!from || !Wallet.address || Wallet.address.toLowerCase() !== String(from).toLowerCase() || Wallet.raw !== raw) {
+          throw new Error("Your wallet changed. Review the details and try again.");
+        }
+      };
+      if (!from) throw new Error("Connect your wallet first.");
       notify("simulating");
+      if (quoted) {
+        await this.checkRegistrationFee(args, options.registrationFee);
+        assertWallet();
+        var balance = await Chain.withRpc(function (provider) { return provider.getBalance(from); });
+        if (typeof balance !== "bigint" || balance < 0n) throw new Error("Could not check your EPIX balance. Try again.");
+        var networkFee = null;
+        if (balance >= options.registrationFee) {
+          try { networkFee = await this.estimateNetworkFee(fn, args, from); }
+          catch (error) { /* The mandatory simulation below still checks spendable funds. */ }
+        }
+        assertWallet();
+        var required = options.registrationFee + (networkFee === null ? 0n : networkFee);
+        if (balance < required) {
+          var low = new Error("Your wallet does not have enough EPIX on Epix for this registration.");
+          low.code = "REGISTRATION_BALANCE_LOW";
+          low.balance = balance;
+          low.registrationFee = options.registrationFee;
+          low.networkFee = networkFee;
+          low.required = required;
+          throw low;
+        }
+      }
       await Chain.withRpc(function (provider) {
         return provider.call({ from: from, to: ADDRESS, data: data });
       });
-      if (!Wallet.address || Wallet.address.toLowerCase() !== String(from).toLowerCase()) {
-        throw new Error("Your wallet changed. Review the details and try again.");
-      }
+      assertWallet();
       notify("pending");
       var signer = await Wallet.signer();
+      if (quoted) await this.checkRegistrationFee(args, options.registrationFee);
+      assertWallet();
+      if (Wallet.chainOk === false) throw new Error("Switch your wallet to the Epix network.");
+      if (signer.getAddress && (await signer.getAddress()).toLowerCase() !== String(from).toLowerCase()) {
+        throw new Error("Your wallet changed. Review the details and try again.");
+      }
+      assertWallet();
       var contract = new ethers.Contract(ADDRESS, ABI, signer);
-      var tx = await contract[fn].apply(contract, args || []);
+      // Bind the reviewed account and network into the request as well as
+      // checking them above. A last-moment wallet switch must not reroute it.
+      var tx = await contract[fn].apply(contract, (args || []).concat([{ from: from, chainId: Chain.ID }]));
       notify("confirming", tx.hash);
       var receipt = await tx.wait();
       if (!receipt || receipt.status !== 1) throw new Error("Transaction failed");
