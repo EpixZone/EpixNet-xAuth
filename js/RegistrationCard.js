@@ -44,17 +44,22 @@
     renderFunding(id) {
       if (!this.fundingOpen) return null;
       return h("div.registration-funding.stack-sm", { id: id + "-funding", key: "funding" }, [
-        h("h3", "Get EPIX in this wallet"),
-        h("p.small.mid", "Funds must arrive in your selected account on the Epix network. EPIX is its native currency; importing a token is not required."),
+        h("h3", "Get EPIX"),
+        h("p.small.mid", [
+          "Buy on ",
+          h("a.text-link", { href: "https://app.osmosis.zone/", target: "_blank", rel: "noopener noreferrer" }, "Osmosis DEX"),
+          " or find exchanges on ",
+          h("a.text-link", { href: "https://www.coingecko.com/en/coins/epix#markets", target: "_blank", rel: "noopener noreferrer" }, "CoinGecko"),
+          "."
+        ]),
+        h("p.small.mid", "Send EPIX to your wallet on the Epix network."),
         Wallet.bech32 ? h("div.stack-sm", [
-          h("span.small.mid", "Your public Epix wallet address"),
+          h("span.small.mid", "Your Epix address"),
           h("code.small.break", Wallet.bech32),
           h("button.btn.btn-secondary", { type: "button", onclick: this.copyAddress }, "Copy Epix address"),
           h("p.small", { role: "status" }, this.copyStatus)
-        ]) : h("p.small.mid", "Connect your wallet to see its receive address."),
-        h("p.small.mid", "Already have EPIX? Send it to this account on Epix. For help getting started, ask the Epix community about registration funds and share your public epix1 address."),
-        h("a.text-link.small", { href: "https://github.com/EpixZone/.github/blob/main/SUPPORT.md", target: "_blank", rel: "noopener noreferrer" }, "Official community help"),
-        h("p.small.mid", "Before using an exchange or swap service, check its supported wallets and Epix transfer route. MetaMask support here does not mean every service accepts MetaMask.")
+        ]) : h("p.small.mid", "Connect to see your receive address."),
+        h("a.text-link.small", { href: "https://github.com/EpixZone/.github/blob/main/SUPPORT.md", target: "_blank", rel: "noopener noreferrer" }, "Community help")
       ]);
     }
 
