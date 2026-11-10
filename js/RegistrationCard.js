@@ -104,7 +104,7 @@
             h("p.small.mid", { id: id + "-help" }, "Your public display name"),
             h("p.small.dim", { id: id + "-rules" }, "1–64 letters, numbers, or internal hyphens. Full .epix names are accepted."),
             h("div.registration-status.stack-sm", { id: id + "-status", "aria-live": "polite", "aria-busy": options.resolving ? "true" : "false" }, [options.status]),
-            h("p.small.mid", "One registration, no renewals. Registering a name does not create a website."),
+            h("p.small.mid", "One registration, no renewals."),
             h("details.registration-purpose", [
               h("summary", "What can I use this name for?"),
               h("p.small.mid", "Your wallet owns the name. Add a profile, link your EpixNet login identities, or point it to a published xite. You can also manage records, choose a primary name, and transfer ownership.")
@@ -133,7 +133,7 @@
             h("details.registration-help", [
               h("summary", "Wallet and fee details"),
               h("div.stack-sm", [
-                h("p.small.mid", "The registration fee is fetched from the chain as the name changes and checked again before approval. It is burned and charged directly to your account; a wallet transfer amount of zero does not mean registration is free. Network fees vary."),
+                h("p.small.mid", "The registration fee is fetched from the chain as the name changes and checked again before approval. It is burned and charged directly to your account. Network fees vary."),
                 Wallet.renderHelp()
               ])
             ])

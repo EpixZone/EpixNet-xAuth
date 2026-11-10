@@ -231,7 +231,7 @@
           h("summary", "Network and costs"),
           h("div.stack-sm", [
             h("p.small", "Use an EVM-compatible wallet. xID asks it to switch to Epix (chain ID 1916), or add Epix if it is missing. EPIX is the network's native currency; importing a token is not required. The selected account needs EPIX on Epix to pay for transactions."),
-            h("p.small", "Registration costs the current name-length fee plus a network transaction fee. The name fee is burned and taken directly from your account, so a wallet's transfer amount of zero does not mean registration is free. Linking a name you already own has a network transaction fee, with no new registration charge."),
+            h("p.small", "Registration costs the current name-length fee plus a network transaction fee. The name fee is burned and taken directly from your account. Linking a name you already own has a network transaction fee, with no new registration charge."),
             h("p.small", "Check the live name fee before registering and review the network fee in your wallet. Network fees vary; registration and linking are separate transactions."),
             h("a.text-link.small", { href: "?Prices", target: "_blank", rel: "noopener noreferrer" }, "Preview current registration prices")
           ])
