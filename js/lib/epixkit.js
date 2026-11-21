@@ -19,9 +19,9 @@
  var styleInjected = false
  var modalInjected = false
  var modalResolve = null
+ var modalPreviousFocus = null
  var activeConnection = null
  var REQUEST_TIMEOUT_MS = 60000
- var modalPreviousFocus = null
  var STORAGE_KEY = "epixkit_wallet"
 
  function saveWalletPref(info) {
@@ -200,6 +200,11 @@
   })
   // Close button
   modal.querySelector(".epixkit-close").addEventListener("click", closeModal)
+  // Stop propagation on box
+  modal.querySelector(".epixkit-box").addEventListener("click", function(e) {
+   e.stopPropagation()
+  })
+  // Escape closes; Tab and Shift+Tab stay inside the dialog
   modal.addEventListener("keydown", function(e) {
    if (e.key === "Escape") { e.preventDefault(); closeModal(); return }
    if (e.key !== "Tab") return
@@ -207,10 +212,6 @@
    var first = controls[0], last = controls[controls.length - 1]
    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
-  })
-  // Stop propagation on box
-  modal.querySelector(".epixkit-box").addEventListener("click", function(e) {
-   e.stopPropagation()
   })
 
   document.body.appendChild(modal)
@@ -227,7 +228,7 @@
   if (wallets.length === 0) {
    empty.innerHTML = emptyStateHtml()
    empty.style.display = "block"
-   document.getElementById("epixkit-modal").style.display = "block"
+   openModal()
    return new Promise(function(resolve) { modalResolve = resolve })
   }
 
@@ -293,20 +294,28 @@
   list.innerHTML = '<div style="color:#f85149;font-size:0.85em;text-align:center;padding:12px 0;">' + escHtml(msg) + '</div>'
  }
 
+ // Show the dialog and move focus into it, remembering what had focus before.
+ // Focus is also moved back in when the content it was on was replaced (the
+ // picker turning into the connecting view).
  function openModal() {
   var modal = document.getElementById("epixkit-modal")
   if (modal.style.display === "none") {
    modalPreviousFocus = document.activeElement
    modal.style.display = "block"
-   modal.querySelector(".epixkit-close").focus()
   }
+  if (!modal.contains(document.activeElement)) modal.querySelector(".epixkit-close").focus()
  }
 
- function closeModal() {
+ // Hide the dialog and return focus to where it was before it opened.
+ function hideModal() {
   var modal = document.getElementById("epixkit-modal")
   if (modal) modal.style.display = "none"
   if (modalPreviousFocus && modalPreviousFocus.isConnected) modalPreviousFocus.focus()
   modalPreviousFocus = null
+ }
+
+ function closeModal() {
+  hideModal()
   if (modalResolve) { modalResolve(null); modalResolve = null }
   if (activeConnection) {
    activeConnection.cancelled = true
@@ -437,8 +446,7 @@
     saveWalletPref(selected.info)
 
     // Close modal
-    var modal = document.getElementById("epixkit-modal")
-    if (modal) modal.style.display = "none"
+    hideModal()
 
     return {
      provider: raw,
