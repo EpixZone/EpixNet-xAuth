@@ -708,6 +708,9 @@
       this.linked.reset();
       this.dns.reset();
       this.transfer.reset();
+      // Wallet startup also notifies pages that have never been opened.
+      // Registration and identity linking do not have a selected name yet.
+      if (!this.name) return;
       this.loadPrimary();
       this.dns.fetchRecords();
       this.linked.onOwnerChanged();

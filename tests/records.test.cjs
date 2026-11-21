@@ -58,6 +58,23 @@ function text(tree) { return nodes(tree).map(node => node.text || '').join(' ');
 
 function byId(tree, id) { return nodes(tree).find(node => node.properties?.id === id); }
 
+test('wallet initialization does not query DNS before a name page has been opened', async () => {
+  const requests = [];
+  const { c } = setup({ dns: async (tld, name) => {
+    requests.push(`/xid/v1/dns/${tld}/${name}`);
+    return { ok: false, data: null };
+  } });
+  const page = new c.NameDetailPage();
+  c.XidContract.read = async (method, args) => { requests.push([method, args]); return ['', '']; };
+  c.Wallet.address = null;
+  page.onWalletChanged();
+  c.Wallet.address = OWNER;
+  page.onWalletChanged();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(requests, []);
+  assert.equal(page.dns.error, '');
+});
+
 test('EpixNet values normalize copied local and gateway URLs to the raw xite address', () => {
   const { c, address } = setup();
   for (const input of [address, ` ${address} `, `http://127.0.0.1:43110/${address}/index.html?view=1#title`, `https://gateway.example/${address}/`, `/${address}/page.html`]) {
