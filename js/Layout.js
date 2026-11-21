@@ -46,7 +46,6 @@
         h("div.sidebar-wallet", [Wallet.renderButton()]),
         h("nav.sidebar-nav", { "aria-label": "Main navigation" }, NAV.map(function (item) { return self.renderNav(item); })),
         h("div.sidebar-foot", [
-          h("p.sidebar-network", [h("span.network-dot"), "EpixChain", h("span.dim.small", "Permanent names")]),
           h("button.nav-link", {
             type: "button",
             title: this.collapsed ? "Expand sidebar" : "Collapse sidebar",

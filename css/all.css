@@ -494,10 +494,6 @@ button.btn-primary:disabled:hover { background: var(--epix-accent) }
 .suffix-chip { min-height: 44px; display: inline-flex; align-items: center }
 .btn-link { font: inherit }
 .field { font-weight: 600 }
-.sidebar-network { margin: 8px 12px 18px; font-size: 12px; display: grid; grid-template-columns: 6px 1fr; gap: 2px 8px; align-items: center }
-.sidebar-network .small { grid-column: 2; font-size: 11px }
-.network-dot { height: 6px; width: 6px; border-radius: 50%; background: var(--epix-accent) }
-.layout.collapsed .sidebar-network { display: none }
 .lookup-tabs { display: flex; gap: 4px; padding: 5px; border: 1px solid var(--epix-border); border-radius: 12px; background: var(--epix-surface-2) }
 .lookup-tab { flex: 1; padding: 11px 12px; border: 0; border-radius: 8px; background: transparent; color: var(--epix-text-mid); font: inherit; font-weight: 500; cursor: pointer }
 .lookup-tab:hover { background: var(--epix-surface) }
