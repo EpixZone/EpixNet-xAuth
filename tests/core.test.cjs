@@ -82,7 +82,9 @@ test('site-info notifications update app state and reach only the active page', 
   load('lib/epixframe.js');
   const dispatch = c.EpixFrame.prototype._onMessage;
   // Skip boot and browser setup, but exercise the real wrapper dispatcher.
-  c.EpixFrame = class {};
+  // The dispatcher emits the matching on() event after each hook; XidApp
+  // registers no listeners, so the stub base only needs a no-op _emit.
+  c.EpixFrame = class { _emit() {} };
   c.addEventListener = () => {};
   load('XidApp.js');
   const app = c.Page;
@@ -112,7 +114,9 @@ test('websocket reconnect notifies the current page after fresh site info arrive
   load('lib/epixframe.js');
   const dispatch = c.EpixFrame.prototype._onMessage;
   // Skip boot and browser setup, but exercise the real wrapper dispatcher.
-  c.EpixFrame = class {};
+  // The dispatcher emits the matching on() event after each hook; XidApp
+  // registers no listeners, so the stub base only needs a no-op _emit.
+  c.EpixFrame = class { _emit() {} };
   c.addEventListener = () => {};
   load('XidApp.js');
   const app = c.Page;
